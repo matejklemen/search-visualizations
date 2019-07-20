@@ -83,12 +83,11 @@ function distanceLabelAndLocation(edge) {
             "y": srcNode.y + (NODE_RADIUS + OFFSET) * Math.sin(angleSrcDst)};
 }
 
-function toggleFocusNode(nodeLabel, focus, i) { // NOTE: i is temporary attr (remove)
+function toggleFocusNode(nodeLabel, focus) {
     canvas.select("#" + nodesHardcoded[nodeLabel].idNode)
             .transition()
             .duration(500)
-            .attr("opacity", focus? 0.5: 1.0)
-            .on("end", function() {performTransition(i + 1)});
+            .attr("opacity", focus? 0.5: 1.0);
 }
 
 // http://jsfiddle.net/igbatov/v0ekdzw1/
