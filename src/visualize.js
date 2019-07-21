@@ -1,8 +1,23 @@
 var canvasWidth = 1000;
-var canvasHeight = 1000;
+var canvasHeight = 600;
 var NODE_RADIUS = 30;
 
 // TODO: "label" property is now redundant
+var nodesHardcoded = {
+    "s": {"x": 500, "y": 50, "label": "s"},
+    "a": {"x": 300, "y": 150, "label": "a"},
+    "b": {"x": 500, "y": 150, "label": "b"},
+    "c": {"x": 700, "y": 150, "label": "c"},
+    "d": {"x": 200, "y": 300, "label": "d"},
+    "e": {"x": 400, "y": 300, "label": "e"},
+    "f": {"x": 570, "y": 300, "label": "f"},
+    "g": {"x": 950, "y": 400, "label": "g"},
+    "h": {"x": 450, "y": 400, "label": "h"},
+    "i": {"x": 630, "y": 400, "label": "i"},
+    "j": {"x": 100, "y": 500, "label": "j"},
+    "k": {"x": 300, "y": 500, "label": "k"}
+}
+/*
 var nodesHardcoded = {
     "A": {"x": 100, "y": 150, "label": "A"},
     "B": {"x": 250, "y": 100, "label": "B"},
@@ -12,13 +27,36 @@ var nodesHardcoded = {
     "F": {"x": 325, "y": 500, "label": "F"},
     "G": {"x": 400, "y": 400, "label": "G"}
 };
+*/
 
 var currId = 0
-for(nodeLabel in nodesHardcoded) {
+for(var nodeLabel in nodesHardcoded) {
     nodesHardcoded[nodeLabel].idNode = "node" + currId;
     currId++;
 }
 
+var edgeList = {
+    "edge0": ["s", "a", 3],
+    "edge1": ["s", "b", 2],
+    "edge2": ["s", "c", 3],
+    "edge3": ["a", "d", 4],
+    "edge4": ["a", "e", 2],
+    "edge5": ["b", "h", 1],
+    "edge6": ["b", "f", 3],
+    "edge7": ["c", "b", 5],
+    "edge8": ["c", "f", 5],
+    "edge9": ["c", "g", 6],
+    "edge10": ["d", "i", 4],
+    "edge11": ["d", "j", 7],
+    "edge12": ["e", "k", 5],
+    "edge13": ["e", "h", 2],
+    "edge14": ["e", "f", 1],
+    "edge15": ["f", "h", 2],
+    "edge16": ["f", "i", 3],
+    "edge17": ["f", "g", 2]
+}
+
+/*
 var edgeList = {
     "edge0": ["A", "B", 10],
     "edge1": ["B", "C", 5],
@@ -28,9 +66,10 @@ var edgeList = {
     "edge5": ["E", "F", 7],
     "edge6": ["E", "G", 0]
 };
+*/
 
 var fixedEdgeList = {}
-for(idEdge in edgeList)
+for(var idEdge in edgeList)
     fixedEdgeList[idEdge] = fixEdgeStartEnd(edgeList[idEdge]);
 
 var canvas = d3.select("body")
@@ -81,13 +120,6 @@ function distanceLabelAndLocation(edge) {
     OFFSET = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) * SCALE;
     return {"label": dist, "x": srcNode.x + (NODE_RADIUS + OFFSET) * Math.cos(angleSrcDst),
             "y": srcNode.y + (NODE_RADIUS + OFFSET) * Math.sin(angleSrcDst)};
-}
-
-function toggleFocusNode(nodeLabel, focus) {
-    canvas.select("#" + nodesHardcoded[nodeLabel].idNode)
-            .transition()
-            .duration(500)
-            .attr("opacity", focus? 0.5: 1.0);
 }
 
 // http://jsfiddle.net/igbatov/v0ekdzw1/
