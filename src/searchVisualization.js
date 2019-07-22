@@ -6,7 +6,9 @@ var DST = new Set(["k", "g"]);
 
 var algoToFn = {
     "dfs": (() => depthFirstSearch(dwg, SRC, DST)),
-    "bfs": (() => breadthFirstSearch(dwg, SRC, DST))
+    "bfs": (() => breadthFirstSearch(dwg, SRC, DST)),
+    "iddfs": (() => iterativeDeepening(dwg, SRC, DST)),
+    "astar": (() => astar(dwg, SRC, DST))
 }
 
 function resetCurrentStep() {
