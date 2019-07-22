@@ -36,6 +36,31 @@ class DirectedWeightedGraph {
     }
 }
 
+class ReconstructionNode {
+    constructor(node, parentNode) {
+        this.node = node;
+        this.parentNode = parentNode;
+    }
+}
+
+// TODO: can you make an uglier sorting sorted insertion? (refactor this!)
+function insertSorted(l, el, cmp=(el1, el2) => (el1 > el2)) {
+    var newList = [];
+    var idx = 0;
+    // copy lower or equal elements
+    while(idx < l.length && cmp(l[idx], el) <= 0) {
+        newList.push(l[idx]);
+        idx++;
+    }
+    newList.push(el);
+    // copy greater elements
+    while(idx < l.length) {
+        newList.push(l[idx]);
+        idx++;
+    }
+    return newList;
+}
+
 /* Checks if source node and target node(s) are in graph. 
     Returns false only if source node is not in graph, otherwise true. 
     Logs a warning if any of the target nodes are not in graph. */
@@ -53,7 +78,7 @@ function checkSourceTargetInGraph(graph, source, target) {
     return true;
 }
 
-// dst... a set of node labels
+// target... a set of node labels
 function depthFirstSearch(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return;
@@ -88,13 +113,6 @@ function breadthFirstSearch(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return;
 
-    class ReconstructionNode {
-        constructor(node, parentNode) {
-            this.node = node;
-            this.parentNode = parentNode;
-        }
-    }
-
     var nodesTrace = [];
     var pathFound = [];
 
@@ -115,5 +133,105 @@ function breadthFirstSearch(graph, source, target) {
     }
 
     pathFound = pathFound.reverse();
+    return [nodesTrace, pathFound];
+}
+
+// TODO: refactor (reuse stuff from depth-first search)
+function iterativeDeepening(graph, source, target) {
+    if(!checkSourceTargetInGraph(graph, source, target))
+        return;
+
+    var nodesTrace = [];
+    var pathFound = [];
+
+    /* Returns 2 flags: first one indicates whether goal was found, second one indicates 
+        whether there are any nodes at depth bigger than current limit */
+    function internalIterativeDeepening(currNode, remainingDepth) {
+        nodesTrace.push(currNode);
+        pathFound.push(currNode);
+        if(remainingDepth == 0) {
+            if(target.has(currNode))
+                return [true, true];
+            else {
+                // dead end
+                pathFound.pop();
+                nodesTrace.push(currNode);
+                return [false, true];
+            }
+        }
+
+        var existNodesDeeper = false;
+        var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
+        for(var i = 0; i < currSuccessors.length; i++) {
+            var [foundGoal, nodesDeeper] = internalIterativeDeepening(currSuccessors[i], remainingDepth - 1);
+
+            if(foundGoal)
+                return [true, nodesDeeper]; 
+            if(nodesDeeper)
+                existNodesDeeper = true;
+        }
+
+        pathFound.pop();
+        nodesTrace.push(currNode);
+        return [false, existNodesDeeper];
+    }
+
+    var [foundGoal, nodesDeeper] = [false, true];
+    var depthLimit = -1;
+    while(!foundGoal && nodesDeeper) {
+        depthLimit++;
+        [foundGoal, nodesDeeper] = internalIterativeDeepening(source, depthLimit);
+        if(!foundGoal)
+            pathFound = [];
+    }
+
+    return [nodesTrace, pathFound];
+}
+
+function astar(graph, source, target) {
+    if(!checkSourceTargetInGraph(graph, source, target))
+        return;
+
+    var pathFound = [];
+    var nodesTrace = [];
+
+    // TODO: extremely inefficient -> should be a heap
+    // stores (<ReconstructionNode>, actual path length to node, f-score) pairs (lists), ordered by increasing f-score
+    var frontier = [];
+    var currNode = new ReconstructionNode(source, null);
+    var distToCurrNode = 0;
+    frontier.push([currNode, 0, 0 + nodesHardcoded[source]["h"]]);
+
+    while(frontier.length > 0) {
+        [currNode, distToCurrNode, _] = frontier.shift();
+        console.log("Current node: " + currNode.node + " " + distToCurrNode);
+        nodesTrace.push(currNode.node);
+        if(target.has(currNode.node))
+            break;
+
+        var currSuccessors = graph.outEdges[currNode.node];
+        for(var successorNode of Object.keys(currSuccessors)) {
+            var idEdge = currSuccessors[successorNode];
+            var [_, _, weight] = graph.edges[idEdge];
+
+            var distToCurrSuccessor = distToCurrNode + weight;
+            // TODO: remove this nasty reference to values from a completely different file (add another arg to astar(...) instead)
+            var fScore = distToCurrSuccessor + nodesHardcoded[successorNode]["h"];
+            // console.log("Assessing successor node " + successorNode + "(dist=" + distToCurrSuccessor + ", f=" + fScore + ")");
+            frontier = insertSorted(frontier, [new ReconstructionNode(successorNode, currNode), distToCurrSuccessor, fScore],
+                                    (el1, el2) => (el1[2] > el2[2])) // sort by f-scores
+        }
+
+        // mark dead end
+        if(Object.keys(currSuccessors).length == 0)
+            nodesTrace.push(currNode.node);
+    }
+
+    // Reconstruct path by following parent nodes from goal to source
+    while(currNode !== null) {
+        pathFound.push(currNode.node);
+        currNode = currNode.parentNode;
+    }
+
     return [nodesTrace, pathFound];
 }
