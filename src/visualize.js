@@ -1,39 +1,30 @@
+// TODO: group together the ways to determine bounds for e.g. heuristic boxes
+// (so that if it changes, it only changes in, ideally, 1 place)
+
+var LEFT_KEYPRESS = 37;
+var RIGHT_KEYPRESS = 39;
+
 var canvasWidth = 1000;
 var canvasHeight = 600;
 var NODE_RADIUS = 30;
 
-// TODO: "label" property is now redundant
-var nodesHardcoded = {
-    "s": {"x": 500, "y": 50, "label": "s"},
-    "a": {"x": 300, "y": 150, "label": "a"},
-    "b": {"x": 500, "y": 150, "label": "b"},
-    "c": {"x": 700, "y": 150, "label": "c"},
-    "d": {"x": 200, "y": 300, "label": "d"},
-    "e": {"x": 400, "y": 300, "label": "e"},
-    "f": {"x": 570, "y": 300, "label": "f"},
-    "g": {"x": 950, "y": 400, "label": "g"},
-    "h": {"x": 450, "y": 400, "label": "h"},
-    "i": {"x": 630, "y": 400, "label": "i"},
-    "j": {"x": 100, "y": 500, "label": "j"},
-    "k": {"x": 300, "y": 500, "label": "k"}
-}
-/*
-var nodesHardcoded = {
-    "A": {"x": 100, "y": 150, "label": "A"},
-    "B": {"x": 250, "y": 100, "label": "B"},
-    "C": {"x": 400, "y": 150, "label": "C"},
-    "D": {"x": 175, "y": 400, "label": "D"},
-    "E": {"x": 325, "y": 400, "label": "E"},
-    "F": {"x": 325, "y": 500, "label": "F"},
-    "G": {"x": 400, "y": 400, "label": "G"}
+var nodeData = {
+    "s": {"x": 500, "y": 50, "h": 7},
+    "a": {"x": 300, "y": 150, "h": 5},
+    "b": {"x": 500, "y": 150, "h": 5},
+    "c": {"x": 700, "y": 150, "h": 4},
+    "d": {"x": 200, "y": 300, "h": 8},
+    "e": {"x": 400, "y": 300, "h": 4},
+    "f": {"x": 570, "y": 300, "h": 1},
+    "g": {"x": 950, "y": 400, "h": 0},
+    "h": {"x": 450, "y": 400, "h": 2},
+    "i": {"x": 630, "y": 400, "h": 3},
+    "j": {"x": 100, "y": 500, "h": 7},
+    "k": {"x": 300, "y": 500, "h": 0}
 };
-*/
 
-var currId = 0
-for(var nodeLabel in nodesHardcoded) {
-    nodesHardcoded[nodeLabel].idNode = "node" + currId;
-    currId++;
-}
+// Assign unique ids to nodes
+Object.keys(nodeData).forEach((label, i) => nodeData[label].idNode = "node" + i);
 
 var edgeList = {
     "edge0": ["s", "a", 3],
@@ -56,26 +47,24 @@ var edgeList = {
     "edge17": ["f", "g", 2]
 }
 
-/*
-var edgeList = {
-    "edge0": ["A", "B", 10],
-    "edge1": ["B", "C", 5],
-    "edge2": ["B", "D", 3],
-    "edge3": ["D", "E", 4],
-    "edge4": ["A", "E", 3],
-    "edge5": ["E", "F", 7],
-    "edge6": ["E", "G", 0]
-};
-*/
-
+/* Holds coordinates where drawn edges start and end in order appear
+    as connections from center of one node to center of other node */
 var fixedEdgeList = {}
 for(var idEdge in edgeList)
     fixedEdgeList[idEdge] = fixEdgeStartEnd(edgeList[idEdge]);
 
-var canvas = d3.select("body")
+/*
+var infoPanel = d3.select("body")
                 .append("svg")
-                .attr("width", canvasWidth)
-                .attr("height", canvasHeight);
+                .attr("width", 200)
+                .attr("height", canvasHeight)
+                .append("rect")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("fill", "white")
+                .attr("stroke", "black")
+                .attr("stroke-width", "1px");
+*/
 
 function angleBetweenPoints(x1, y1, x2, y2) {
     // https://stackoverflow.com/a/27481611
@@ -89,8 +78,8 @@ function angleBetweenPoints(x1, y1, x2, y2) {
     but rather that the lines touch the boundary of the circles. */
 function fixEdgeStartEnd(edge) {
     var [srcLabel, dstLabel, _] = edge;
-    var srcNode = nodesHardcoded[srcLabel];
-    var dstNode = nodesHardcoded[dstLabel];
+    var srcNode = nodeData[srcLabel];
+    var dstNode = nodeData[dstLabel];
 
     // Subtracting angle from 2PI because of screen coordinates being different (0, 0 is top-left corner)
     var angleSrcDst = 2 * Math.PI - angleBetweenPoints(srcNode.x, srcNode.y, dstNode.x, dstNode.y);
@@ -102,12 +91,13 @@ function fixEdgeStartEnd(edge) {
             dstNode.y + NODE_RADIUS * Math.sin(angleDstSrc)];
 }
 
-// TODO: refactor this (reuse common functionality from `fixEdgeStartEnd`)
-function distanceLabelAndLocation(edge) {
+// TODO: refactor this (reuse common functionality from `fixEdgeStartEnd`) - maybe add an optional SCALE parameter
+function distanceLabelAndLocation(idEdge) {
+    var edge = edgeList[idEdge];
     // returns {"label": weight of edge, "x": x position of label, "y": y position of label}
     var [srcLabel, dstLabel, dist] = edge;
-    var srcNode = nodesHardcoded[srcLabel];
-    var dstNode = nodesHardcoded[dstLabel];
+    var srcNode = nodeData[srcLabel];
+    var dstNode = nodeData[dstLabel];
 
     // should be between 0 and 1, 0 means label is closer to source node, 1 means closer to dst node
     SCALE = 0.2
@@ -119,10 +109,52 @@ function distanceLabelAndLocation(edge) {
 
     OFFSET = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) * SCALE;
     return {"label": dist, "x": srcNode.x + (NODE_RADIUS + OFFSET) * Math.cos(angleSrcDst),
-            "y": srcNode.y + (NODE_RADIUS + OFFSET) * Math.sin(angleSrcDst)};
+            "y": srcNode.y + (NODE_RADIUS + OFFSET) * Math.sin(angleSrcDst), "idEdge": idEdge};
 }
 
-// http://jsfiddle.net/igbatov/v0ekdzw1/
+/* Removes node with label `nodeLabel` from the screen and the underlying data structures. */
+function deleteNodeAndEdges(graph, nodeLabel) {
+    var foundItems = new Set();
+    // handle node circle element, label, heuristic text and heuristic box
+    foundItems.add(nodeData[nodeLabel].idNode);
+    foundItems.add("label_" + nodeData[nodeLabel].idNode);
+    foundItems.add("h_" + nodeData[nodeLabel].idNode);
+    foundItems.add("hbox_" + nodeData[nodeLabel].idNode);
+
+    // handle the transparent overlay element that serves as a convenient click area
+    foundItems.add("delete_" + nodeData[nodeLabel].idNode);
+
+    // handle lines of out-edges and text of weights
+    var successors = Object.values(dwg.outEdges[nodeLabel]);
+    for(var i = 0; i < successors.length; i++) {
+        foundItems.add(successors[i]);
+        foundItems.add("w_" + successors[i]);
+        delete edgeList[successors[i]];
+    }
+
+    // handle lines of in-edges and text of weights
+    var predecessors = Object.values(dwg.inEdges[nodeLabel]);
+    for(var i = 0; i < predecessors.length; i++) {
+        foundItems.add(predecessors[i]);
+        foundItems.add("w_" + predecessors[i]);
+        delete edgeList[predecessors[i]];
+    }
+
+    foundItems.forEach(idElement => d3.select("#" + idElement).remove());
+    graph.removeNode(nodeLabel);
+    delete nodeData[nodeLabel];
+
+    // recalculate path to be displayed on screen
+    updateSelection();
+}
+
+var canvas = d3.select("body")
+                .append("svg")
+                .attr("width", canvasWidth)
+                .attr("height", canvasHeight);
+
+/* Arrow shape for directed edges -
+    http://jsfiddle.net/igbatov/v0ekdzw1/ */
 canvas.append("svg:defs").append("svg:marker")
     .attr("id", "triangle")
     .attr("refX", 10)
@@ -135,6 +167,7 @@ canvas.append("svg:defs").append("svg:marker")
     .attr("d", "M 0 0 12 6 0 12 3 6")
     .style("fill", "black");
 
+// Draw directed edges - ID: "<id-edge>"
 canvas.selectAll("line")
         .data(d3.keys(fixedEdgeList))
         .enter()
@@ -148,38 +181,101 @@ canvas.selectAll("line")
         .attr("stroke-width", "2px")
         .attr("marker-end", "url(#triangle)");
 
+// Draw nodes - ID: "<id-node>"
 canvas.selectAll("circle")
-        .data(Object.values(nodesHardcoded))
+        .data(Object.values(nodeData))
         .enter()
         .append("circle")
-        .attr("id", nodeInfo => nodeInfo.idNode)
-        .attr("cx", nodeInfo => nodeInfo.x)
-        .attr("cy", nodeInfo => nodeInfo.y)
+        .attr("id", nodeInfo => nodeInfo["idNode"])
+        .attr("cx", nodeInfo => nodeInfo["x"])
+        .attr("cy", nodeInfo => nodeInfo["y"])
         .attr("r", NODE_RADIUS)
         .attr("fill", "blue")
         .attr("stroke", "black")
-        .attr("stroke-width", "1px")
-        .attr("opacity", 1.0);
+        .attr("stroke-width", "1px");
 
-canvas.selectAll("text")
-        .data(Object.values(nodesHardcoded))
+// Draw boxes to hold heuristic values for nodes - ID: "hbox_<node-id>"
+canvas.selectAll("heuristicBox")
+        .data(Object.values(nodeData))
+        .enter()
+        .append("rect")
+        .attr("id", nodeInfo => "hbox_" + nodeInfo.idNode)
+        .attr("x", nodeInfo => nodeInfo["x"] - NODE_RADIUS / 2)
+        .attr("y", nodeInfo => nodeInfo["y"] - 3 * NODE_RADIUS / 2)
+        .attr("width", NODE_RADIUS)
+        .attr("height", NODE_RADIUS)
+        .attr("fill", "white")
+        .attr("stroke", "black")
+        .attr("stroke-width", "1px")
+        .attr("opacity", 0.8);
+
+// Draw heuristic values for nodes inside boxes - ID: "h_<node-id>"
+canvas.selectAll("heuristicValue")
+        .data(Object.values(nodeData))
         .enter()
         .append("text")
-        .attr("x", dataItem => dataItem["x"] - 16 / 2)
-        .attr("y", dataItem => dataItem["y"] + 22 / 2)
-        .text(dataItem => dataItem["label"])
+        .attr("id", nodeInfo => "h_" + nodeInfo.idNode)
+        .attr("x", nodeInfo => nodeInfo["x"] - 6)
+        .attr("y", nodeInfo => (nodeInfo["y"] - 3 * NODE_RADIUS / 2 + 22))
+        .text(nodeInfo => nodeInfo["h"])
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "18px")
+        .attr("font-weight", "bold");
+
+// Draw labels - ID: "label_<node-id>"
+canvas.selectAll("nodeLabel")
+        .data(Object.keys(nodeData))
+        .enter()
+        .append("text")
+        .attr("id", nodeLabel => "label_" + nodeData[nodeLabel].idNode)
+        .attr("x", nodeLabel => nodeData[nodeLabel]["x"] - 16 / 2)
+        .attr("y", nodeLabel => nodeData[nodeLabel]["y"] + 22 / 2)
+        .text(nodeLabel => nodeLabel)
         .attr("font-family", "sans-serif")
         .attr("font-size", "24px")
-        .attr("fill", "white")
+        .attr("fill", "white");
 
+// Draw weights for directed edges - ID: "w_<edge-id>"
 canvas.selectAll("edgeWeight")
-        .data(Object.values(edgeList).map(distanceLabelAndLocation))
+        .data(Object.keys(edgeList).map(distanceLabelAndLocation))
         .enter()
         .append("text")
+        .attr("id", item => "w_" + item["idEdge"])
         .attr("x", item => item["x"])
         .attr("y", item => item["y"])
         .text(item => String(item["label"]))
         .attr("font-family", "sans-serif")
         .attr("font-size", "14px")
         .attr("fill", "red")
-        .attr("font-weight", "bold")
+        .attr("font-weight", "bold");
+
+// Draw transparent circles over nodes for convenient removal logic
+canvas.selectAll("nodeDeleter")
+        .data(Object.keys(nodeData))
+        .enter()
+        .append("circle")
+        .attr("id", nodeLabel => "delete_" + nodeData[nodeLabel]["idNode"])
+        .attr("cx", nodeLabel => nodeData[nodeLabel]["x"])
+        .attr("cy", nodeLabel => nodeData[nodeLabel]["y"])
+        .attr("r", NODE_RADIUS)
+        .attr("fill", "blue")
+        .attr("opacity", 0.0)
+        .on("click", nodeLabel => deleteNodeAndEdges(dwg, nodeLabel))
+
+// TODO: create logic for creating nodes and connecting nodes via edges
+canvas.on("click", function() {
+    var [x, y] = d3.mouse(this);
+    console.log("You clicked on (" + x + ", " + y + ")");
+});
+
+/* Allows handling animation transitions by pressing left/right arrow key.
+    https://stackoverflow.com/questions/6542413/bind-enter-key-to-specific-button-on-page */
+document.onkeydown = function (e) {
+    e = e || window.event;
+    switch (e.which || e.keyCode) {
+        case LEFT_KEYPRESS: prevStepTransition();
+            break;
+        case RIGHT_KEYPRESS: nextStepTransition();
+            break;
+    }
+}
