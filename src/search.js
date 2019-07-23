@@ -34,6 +34,12 @@ class DirectedWeightedGraph {
             this.outEdges[srcNode][dstNode] = edgeId;
         }
     }
+
+    removeNode(node) {
+        this.nodes.delete(node);
+        delete this.inEdges[node];
+        delete this.outEdges[node];
+    }
 }
 
 class ReconstructionNode {
@@ -200,7 +206,7 @@ function astar(graph, source, target) {
     var frontier = [];
     var currNode = new ReconstructionNode(source, null);
     var distToCurrNode = 0;
-    frontier.push([currNode, 0, 0 + nodesHardcoded[source]["h"]]);
+    frontier.push([currNode, 0, 0 + nodeData[source]["h"]]);
 
     while(frontier.length > 0) {
         [currNode, distToCurrNode, _] = frontier.shift();
@@ -216,7 +222,7 @@ function astar(graph, source, target) {
 
             var distToCurrSuccessor = distToCurrNode + weight;
             // TODO: remove this nasty reference to values from a completely different file (add another arg to astar(...) instead)
-            var fScore = distToCurrSuccessor + nodesHardcoded[successorNode]["h"];
+            var fScore = distToCurrSuccessor + nodeData[successorNode]["h"];
             // console.log("Assessing successor node " + successorNode + "(dist=" + distToCurrSuccessor + ", f=" + fScore + ")");
             frontier = insertSorted(frontier, [new ReconstructionNode(successorNode, currNode), distToCurrSuccessor, fScore],
                                     (el1, el2) => (el1[2] > el2[2])) // sort by f-scores
