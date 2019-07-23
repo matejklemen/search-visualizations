@@ -50,8 +50,10 @@ function prevStepTransition() {
     transitionInProgress = true;
     var prevStep = d3.max([0 - 1, step - 1]);
     // beginning of trace
-    if(prevStep == step)
+    if(prevStep == step) {
+        transitionInProgress = false;
         return;
+    }
 
     if(step >= 0)
         resetCurrentStep();
