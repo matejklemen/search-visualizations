@@ -3,10 +3,16 @@
 
 var LEFT_KEYPRESS = 37;
 var RIGHT_KEYPRESS = 39;
+var ENTER_KEYPRESS = 13;
 
 var canvasWidth = 1000;
 var canvasHeight = 600;
 var NODE_RADIUS = 30;
+
+var nodeDeleteMode = false;
+var nodeAddMode = false;
+
+var nodeBeingAdded = false;
 
 var nodeData = {
     "s": {"x": 500, "y": 50, "h": 7},
@@ -114,6 +120,9 @@ function distanceLabelAndLocation(idEdge) {
 
 /* Removes node with label `nodeLabel` from the screen and the underlying data structures. */
 function deleteNodeAndEdges(graph, nodeLabel) {
+    if(!nodeDeleteMode)
+        return;
+
     var foundItems = new Set();
     // handle node circle element, label, heuristic text and heuristic box
     foundItems.add(nodeData[nodeLabel].idNode);
@@ -129,6 +138,7 @@ function deleteNodeAndEdges(graph, nodeLabel) {
     for(var i = 0; i < successors.length; i++) {
         foundItems.add(successors[i]);
         foundItems.add("w_" + successors[i]);
+        graph.removeEdge(edgeList[successors[i]]);
         delete edgeList[successors[i]];
     }
 
@@ -137,6 +147,7 @@ function deleteNodeAndEdges(graph, nodeLabel) {
     for(var i = 0; i < predecessors.length; i++) {
         foundItems.add(predecessors[i]);
         foundItems.add("w_" + predecessors[i]);
+        graph.removeEdge(edgeList[predecessors[i]]);
         delete edgeList[predecessors[i]];
     }
 
@@ -146,6 +157,86 @@ function deleteNodeAndEdges(graph, nodeLabel) {
 
     // recalculate path to be displayed on screen
     updateSelection();
+}
+
+function drawNewNode(x, y) {
+    // TODO: ensure no other node is being added
+    if(nodeBeingAdded)
+        return;
+
+    // TODO: check for overlap
+    var overlap = false;
+    for(var nodeLabel in nodeData) {
+        var currNodeData = nodeData[nodeLabel];
+
+        var leftX = currNodeData["x"] - NODE_RADIUS;
+        var rightX = currNodeData["x"] + NODE_RADIUS;
+        var topY = currNodeData["y"] - NODE_RADIUS;
+        var bottomY = currNodeData["y"] + NODE_RADIUS;
+
+        overlap = overlap || (leftX <= x && x <= rightX && topY <= y && y <= bottomY);
+    }
+
+    if(overlap)
+        return;
+
+    nodeBeingAdded = true;
+    var newNodeId = "node" + Object.keys(nodeData).length;
+    drawNode(canvas, newNodeId, null, x, y, NODE_RADIUS, null, true);
+    return;
+
+     // TODO: add input field for label (on enter -> done adding)
+    canvas.append("foreignObject")
+            .attr("x", x - NODE_RADIUS / 4)
+            .attr("y", y - NODE_RADIUS / 2)
+            .attr("width", NODE_RADIUS)
+            .attr("height", NODE_RADIUS)
+            .html(function(d) {
+                return '<input type="text" id="newNodeLabel" style="background: none; color: white; \
+                        border: none; font-family: sans-serif; font-size: 24px;" />'
+            })
+            .on("keypress", function() {
+                if(d3.event.keyCode == ENTER_KEYPRESS) {
+                    console.log("Pressed ENTER!");
+                    d3.select(this).remove();
+                    nodeBeingAdded = false; // TODO: move this to some common place
+                }
+            });
+
+    // add input field for heuristic value (on enter -> done adding)
+    canvas.append("foreignObject")
+            .attr("x", nodeInfo => x - NODE_RADIUS / 4)
+            .attr("y", nodeInfo => y - 3 * NODE_RADIUS / 2)
+            .attr("width", NODE_RADIUS)
+            .attr("height", NODE_RADIUS)
+            .html(function(d) {
+                return '<input type="text" id="newNodeHeuristic" style="background: none; color: black; \
+                        border: none; font-family: sans-serif; font-size: 18px; font-weight: bold;" />'
+            })
+            .on("keypress", function() {
+                if(d3.event.keyCode == ENTER_KEYPRESS) {
+                    console.log("Pressed ENTER!");
+                    d3.select(this).remove();
+                    nodeBeingAdded = false; // TODO: move this to some common place
+                }
+            });
+
+    canvas.select("#newNodeLabel").node().focus();
+
+    // TODO: unfinished
+    // ...
+}
+
+function toggleNodeDeleteMode() {
+    var deleteBtnMessage = nodeDeleteMode? "yeet": "done deleting";
+    d3.select("#removeNode").text(deleteBtnMessage);
+    nodeDeleteMode = !nodeDeleteMode;
+}
+
+function toggleNodeAddMode() {
+    var addBtnMessage = nodeAddMode? "node+": "done adding nodes";
+    d3.select("#addNode").text(addBtnMessage);
+    nodeAddMode = !nodeAddMode;
 }
 
 var canvas = d3.select("body")
@@ -181,59 +272,101 @@ canvas.selectAll("line")
         .attr("stroke-width", "2px")
         .attr("marker-end", "url(#triangle)");
 
-// Draw nodes - ID: "<id-node>"
-canvas.selectAll("circle")
-        .data(Object.values(nodeData))
-        .enter()
-        .append("circle")
-        .attr("id", nodeInfo => nodeInfo["idNode"])
-        .attr("cx", nodeInfo => nodeInfo["x"])
-        .attr("cy", nodeInfo => nodeInfo["y"])
-        .attr("r", NODE_RADIUS)
+/* Draw node (and the label, heuristic box, heuristic value). */
+function drawNode(canvas, idNode, nodeLabel, centerX, centerY, radius, heuristic, drawInputBoxes = false) {
+    function drawLabel(newNodeLabel) {
+        canvas.append("text")
+                .attr("id", nodeLabel => "label_" + idNode) /* format: "label_node<number> */
+                .attr("x", nodeLabel => centerX - 16 / 2)
+                .attr("y", nodeLabel => centerY + 22 / 2)
+                .text(nodeLabel => newNodeLabel)
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "24px")
+                .attr("fill", "white");
+    }
+
+    function drawHeuristicValue(newhValue) {
+        canvas.append("text")
+                .attr("id", nodeInfo => "h_" + idNode) /* format: "h_node<number>" */
+                .attr("x", nodeInfo => centerX - 6)
+                .attr("y", nodeInfo => (centerY - 3 * radius / 2 + 22))
+                .text(nodeInfo => newhValue)
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "18px")
+                .attr("font-weight", "bold");
+    }
+
+    function addInput(idInput, xInput, yInput, fontSize, fontColor, fontWeight, onEnter) {
+        console.log("Adding input #" + idInput);
+        canvas.append("foreignObject")
+            .attr("x", xInput)
+            .attr("y", yInput)
+            .attr("width", radius)
+            .attr("height", radius)
+            .html(function(d) {
+                return '<input type="text" id="' + idInput + '" style="background: none; \
+                color: ' + fontColor + '; border: none; font-family: sans-serif; \
+                font-size: ' + fontSize + '; font-weight: \"' + fontWeight +'\" />';
+            })
+        .on("keypress", function() {
+            if(d3.event.keyCode == ENTER_KEYPRESS)
+                onEnter();
+        });
+        
+        canvas.select("#" + idInput).node().focus();
+    }
+
+    // visible node
+    canvas.append("circle")
+        .attr("id", idNode) /* format: "node<number>" */
+        .attr("cx", centerX)
+        .attr("cy", centerY)
+        .attr("r", radius)
         .attr("fill", "blue")
         .attr("stroke", "black")
         .attr("stroke-width", "1px");
 
-// Draw boxes to hold heuristic values for nodes - ID: "hbox_<node-id>"
-canvas.selectAll("heuristicBox")
-        .data(Object.values(nodeData))
-        .enter()
-        .append("rect")
-        .attr("id", nodeInfo => "hbox_" + nodeInfo.idNode)
-        .attr("x", nodeInfo => nodeInfo["x"] - NODE_RADIUS / 2)
-        .attr("y", nodeInfo => nodeInfo["y"] - 3 * NODE_RADIUS / 2)
-        .attr("width", NODE_RADIUS)
-        .attr("height", NODE_RADIUS)
+    // box to hold heuristic value of a node
+    canvas.append("rect")
+        .attr("id", "hbox_" + idNode) /* format: "hbox_node<number>" */
+        .attr("x", nodeInfo => centerX - NODE_RADIUS / 2)
+        .attr("y", nodeInfo => centerY - 3 * NODE_RADIUS / 2)
+        .attr("width", radius)
+        .attr("height", radius)
         .attr("fill", "white")
         .attr("stroke", "black")
         .attr("stroke-width", "1px")
         .attr("opacity", 0.8);
 
-// Draw heuristic values for nodes inside boxes - ID: "h_<node-id>"
-canvas.selectAll("heuristicValue")
-        .data(Object.values(nodeData))
-        .enter()
-        .append("text")
-        .attr("id", nodeInfo => "h_" + nodeInfo.idNode)
-        .attr("x", nodeInfo => nodeInfo["x"] - 6)
-        .attr("y", nodeInfo => (nodeInfo["y"] - 3 * NODE_RADIUS / 2 + 22))
-        .text(nodeInfo => nodeInfo["h"])
-        .attr("font-family", "sans-serif")
-        .attr("font-size", "18px")
-        .attr("font-weight", "bold");
+    // TODO: validate inputs! (that they are numbers)
+    // TODO: add new nodes
+    if(drawInputBoxes) {
+        // input for heuristic
+        addInput("newNodeHeuristic", (centerX - radius / 4), (centerY - 3 * radius / 2), "18", "black", "bold", function() {
+            var newHeuristicValue = canvas.select("#newNodeHeuristic").node().value;
+            drawHeuristicValue(newHeuristicValue)
+            canvas.select("#newNodeHeuristic").remove();
+            // Only show the second input field after user completes first
+            addInput("newNodeLabel", (centerX - radius / 4), (centerY - radius / 2), "24px", "white", "normal", function() {
+                var newNodeLabel = canvas.select("#newNodeLabel").node().value;
+                drawLabel(newNodeLabel);
+                canvas.select("#newNodeLabel").remove();
+                nodeBeingAdded = false;
+            });
+        });
+    }
+    else {
+        drawLabel(nodeLabel);
+        drawHeuristicValue(heuristic);
+    }
 
-// Draw labels - ID: "label_<node-id>"
-canvas.selectAll("nodeLabel")
-        .data(Object.keys(nodeData))
-        .enter()
-        .append("text")
-        .attr("id", nodeLabel => "label_" + nodeData[nodeLabel].idNode)
-        .attr("x", nodeLabel => nodeData[nodeLabel]["x"] - 16 / 2)
-        .attr("y", nodeLabel => nodeData[nodeLabel]["y"] + 22 / 2)
-        .text(nodeLabel => nodeLabel)
-        .attr("font-family", "sans-serif")
-        .attr("font-size", "24px")
-        .attr("fill", "white");
+}
+
+// Draw nodes - ID: "<id-node>"
+Object.keys(nodeData).forEach(function(nodeLabel) {
+    var nodeProps = nodeData[nodeLabel];
+    drawNode(canvas, nodeProps["idNode"], nodeLabel, nodeProps["x"], nodeProps["y"], NODE_RADIUS, nodeProps["h"]);
+});
 
 // Draw weights for directed edges - ID: "w_<edge-id>"
 canvas.selectAll("edgeWeight")
@@ -249,7 +382,8 @@ canvas.selectAll("edgeWeight")
         .attr("fill", "red")
         .attr("font-weight", "bold");
 
-// Draw transparent circles over nodes for convenient removal logic
+/* Draw transparent circles over nodes for convenient removal logic -
+    outside of drawNode(...) as it requires the graph object */
 canvas.selectAll("nodeDeleter")
         .data(Object.keys(nodeData))
         .enter()
@@ -261,11 +395,21 @@ canvas.selectAll("nodeDeleter")
         .attr("fill", "blue")
         .attr("opacity", 0.0)
         .on("click", nodeLabel => deleteNodeAndEdges(dwg, nodeLabel))
+        .on("mouseover", nodeLabel =>
+            canvas.select("#" + nodeData[nodeLabel]["idNode"]).attr("fill", "darkblue"))
+        .on("mouseout", nodeLabel =>
+            canvas.select("#" + nodeData[nodeLabel]["idNode"]).attr("fill", "blue"));
 
 // TODO: create logic for creating nodes and connecting nodes via edges
 canvas.on("click", function() {
     var [x, y] = d3.mouse(this);
     console.log("You clicked on (" + x + ", " + y + ")");
+    // TODO: ensure node adding mode is selected (and call function)
+    if(nodeAddMode) {
+        // console.log("Node adding logic is commented out as it's not fully implemented");
+        drawNewNode(x, y);
+    }
+
 });
 
 /* Allows handling animation transitions by pressing left/right arrow key.
