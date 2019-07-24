@@ -40,6 +40,12 @@ class DirectedWeightedGraph {
         delete this.inEdges[node];
         delete this.outEdges[node];
     }
+
+    removeEdge(edge) {
+        var [src, dst, w] = edge;
+        delete this.outEdges[src][dst];
+        delete this.inEdges[dst][src];
+    }
 }
 
 class ReconstructionNode {
@@ -210,7 +216,6 @@ function astar(graph, source, target) {
 
     while(frontier.length > 0) {
         [currNode, distToCurrNode, _] = frontier.shift();
-        console.log("Current node: " + currNode.node + " " + distToCurrNode);
         nodesTrace.push(currNode.node);
         if(target.has(currNode.node))
             break;
