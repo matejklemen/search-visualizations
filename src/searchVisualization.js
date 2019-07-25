@@ -13,12 +13,6 @@ var algoToFn = {
     "astar": (() => astar(dwg, SRC, DST))
 }
 
-function resetCurrentStep() {
-    var nodeLabel = pathCache[0][step];
-    canvas.select("#" + nodeData[nodeLabel].idNode)
-            .attr("stroke-width", "1px");
-}
-
 function nextStepTransition() {
     if(transitionInProgress)
         return;
@@ -91,6 +85,6 @@ function clearVisualization() {
 }
 
 var dwg = new DirectedWeightedGraph();
-dwg.addNodesFrom(nodeData);
+dwg.addNodesFrom(Object.keys(nodeData));
 dwg.addEdgesFrom(edgeList);
 updateSelection();

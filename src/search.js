@@ -18,7 +18,8 @@ class DirectedWeightedGraph {
 
     addNodesFrom(nodes) {
         // nodes... iterable of node labels
-        for(var nodeLabel in nodes) {
+        for(var i = 0; i < nodes.length; i++) {
+            var nodeLabel = nodes[i];
             this.nodes.add(nodeLabel);
             this.inEdges[nodeLabel] = {};
             this.outEdges[nodeLabel] = {};
