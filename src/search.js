@@ -98,15 +98,20 @@ function depthFirstSearch(graph, source, target) {
 
     var nodesTrace = [];
     var pathFound = [];
+    var notes = [];
 
     function internalDfs(currNode) {
         nodesTrace.push(currNode);
         pathFound.push(currNode);
-        if(target.has(currNode))
+        var isGoalNode = target.has(currNode);
+        notes.push("'" + currNode + "' is " + (isGoalNode? "": "not") + " a target node -> " + (isGoalNode? "quitting": "not quitting"));
+        if(isGoalNode)
             return true;
 
         var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
         for(var i = 0; i < currSuccessors.length; i++) {
+            nodesTrace.push(currNode);
+            notes.push("Current unvisited successors: " + currSuccessors.slice(i).join(", ") + "-> visiting '" + currSuccessors[i] + "'...");
             var foundGoal = internalDfs(currSuccessors[i]);
             if(foundGoal)
                 return true;
@@ -114,12 +119,24 @@ function depthFirstSearch(graph, source, target) {
 
         pathFound.pop();
         nodesTrace.push(currNode);
+        notes.push("No remaining successors for node '" + currNode + "' -> backtracking");
         return false;
     }
 
+    nodesTrace.push(source);
+    notes.push("Starting at node '" + source + "'");
     internalDfs(source);
 
-    return [nodesTrace, pathFound];
+    if(pathFound.length > 0) {
+        nodesTrace.push(nodesTrace[nodesTrace.length - 1]);
+        notes.push("Found path: " + pathFound.join("->"));
+    }
+    else {
+        nodesTrace.push(source);
+        notes.push("No path found from '" + source + "' to '" + target + "'");
+    }
+
+    return [nodesTrace, pathFound, notes];
 }
 
 function breadthFirstSearch(graph, source, target) {
@@ -128,6 +145,7 @@ function breadthFirstSearch(graph, source, target) {
 
     var nodesTrace = [];
     var pathFound = [];
+    var notes = [];
 
     var currNode = new ReconstructionNode(null, null); // placeholder
     var frontier = [new ReconstructionNode(source, null)];
@@ -146,7 +164,7 @@ function breadthFirstSearch(graph, source, target) {
     }
 
     pathFound = pathFound.reverse();
-    return [nodesTrace, pathFound];
+    return [nodesTrace, pathFound, notes];
 }
 
 // TODO: refactor (reuse stuff from depth-first search)
@@ -156,6 +174,7 @@ function iterativeDeepening(graph, source, target) {
 
     var nodesTrace = [];
     var pathFound = [];
+    var notes = [];
 
     /* Returns 2 flags: first one indicates whether goal was found, second one indicates 
         whether there are any nodes at depth bigger than current limit */
@@ -198,7 +217,7 @@ function iterativeDeepening(graph, source, target) {
             pathFound = [];
     }
 
-    return [nodesTrace, pathFound];
+    return [nodesTrace, pathFound, notes];
 }
 
 function astar(graph, source, target) {
@@ -207,6 +226,7 @@ function astar(graph, source, target) {
 
     var pathFound = [];
     var nodesTrace = [];
+    var notes = [];
 
     // TODO: extremely inefficient -> should be a heap
     // stores (<ReconstructionNode>, actual path length to node, f-score) pairs (lists), ordered by increasing f-score
@@ -245,5 +265,5 @@ function astar(graph, source, target) {
         currNode = currNode.parentNode;
     }
 
-    return [nodesTrace, pathFound];
+    return [nodesTrace, pathFound, notes];
 }

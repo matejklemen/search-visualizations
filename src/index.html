@@ -2,7 +2,7 @@
 <meta charset="utf-8" />
 <body>
 	<div id="toolbar">
-		<select id="selectedAlgorithm" onchange="updateSelection()" selected="dfs">
+		<select id="selectedAlgorithm" onchange="resetVisualization()" selected="dfs">
 			<option value="dfs">Depth-first search</option>
 			<option value="bfs">Breadth-first search</option>
 			<option value="iddfs">Iterative deepening search</option>>
@@ -11,15 +11,16 @@
 		</select>
 		<button onclick="prevStepTransition()">👈</button>
 		<button onclick="nextStepTransition()">👉</button>
-		<button onclick="clearVisualization()">🚫</button>
+		<button id="reset" onclick="resetVisualization()">🚫</button>
 		<button id="addNode" onclick="toggleState(this, STATES.ADD_NODE)">node+</button>
 		<button id="removeNode" onclick="toggleState(this, STATES.DELETE_NODE)">node-</button>
 		<button id="addEdge" onclick="toggleState(this, STATES.ADD_EDGE)">edge+</button>
+		<div id="logger" style="display: inline;"></div>
 	</div>
 	<br/>
 </body>
 <script src="../lib/d3.min.js"></script>
-<script src="visualize.js"></script>
 <script src="search.js"></script>
-<script src="searchVisualization.js"></script>
+<script src="boilerplate.js"></script>
+<script src="visualize.js"></script>
 </html>
