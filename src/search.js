@@ -111,7 +111,7 @@ function depthFirstSearch(graph, source, target) {
         var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
         for(var i = 0; i < currSuccessors.length; i++) {
             nodesTrace.push(currNode);
-            notes.push("Current unvisited successors: " + currSuccessors.slice(i).join(", ") + "-> visiting '" + currSuccessors[i] + "'...");
+            notes.push("Successors: " + currSuccessors.slice(i).join(", ") + "-> visiting '" + currSuccessors[i] + "'...");
             var foundGoal = internalDfs(currSuccessors[i]);
             if(foundGoal)
                 return true;
@@ -133,7 +133,7 @@ function depthFirstSearch(graph, source, target) {
     }
     else {
         nodesTrace.push(source);
-        notes.push("No path found from '" + source + "' to '" + target + "'");
+        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
     }
 
     return [nodesTrace, pathFound, notes];
@@ -147,23 +147,48 @@ function breadthFirstSearch(graph, source, target) {
     var pathFound = [];
     var notes = [];
 
+    nodesTrace.push(source);
+    notes.push("Starting at node '" + source + "'");
+
     var currNode = new ReconstructionNode(null, null); // placeholder
     var frontier = [new ReconstructionNode(source, null)];
-    while(!target.has(currNode.node)) {
+    while(frontier.length > 0) {
         currNode = frontier.shift();
+        var isTarget = target.has(currNode.node);
+        
         nodesTrace.push(currNode.node);
+        notes.push("'" + currNode.node + "'" + (currNode.parentNode !== null? " (enqueued from '" + currNode.parentNode.node + "')": "") +
+            " is" + (isTarget? "": " not") + " a target node -> " + (isTarget? "": " not") + " quitting");
+        
+        if(isTarget)
+            break;
 
         var currSuccessors = Object.keys(graph.outEdges[currNode.node]).sort();
+        nodesTrace.push(currNode.node);
+        if(currSuccessors.length > 0)
+            notes.push("Putting " + currSuccessors.join(", ") + " at the end of the queue");
+        else
+            notes.push("No successors at node '" + currNode.node + "'");
         currSuccessors.forEach(node => frontier.push(new ReconstructionNode(node, currNode)));
     }
 
+
     // Reconstruct path by following parent nodes from goal to source
-    while(currNode !== null) {
-        pathFound.push(currNode.node);
-        currNode = currNode.parentNode;
+    if(target.has(currNode.node)) {
+        while(currNode !== null) {
+            pathFound.push(currNode.node);
+            currNode = currNode.parentNode;
+        }
+        pathFound = pathFound.reverse();
+        nodesTrace.push(pathFound[pathFound.length - 1]);
+        notes.push("Found path: " + pathFound.join("->"));
+    }
+    else {
+        nodesTrace.push(currNode.node);
+        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
     }
 
-    pathFound = pathFound.reverse();
+    console.log(pathFound);
     return [nodesTrace, pathFound, notes];
 }
 
