@@ -1,5 +1,8 @@
 <html>
 <meta charset="utf-8" />
+<head>
+	<link rel="stylesheet" type="text/css" href="style.css">
+</head>
 <body>
 	<div id="toolbar">
 		<select id="selectedAlgorithm" onchange="resetVisualization()" selected="dfs">
@@ -15,7 +18,10 @@
 		<button id="addNode" onclick="toggleState(this, STATES.ADD_NODE)">node+</button>
 		<button id="removeNode" onclick="toggleState(this, STATES.DELETE_NODE)">node-</button>
 		<button id="addEdge" onclick="toggleState(this, STATES.ADD_EDGE)">edge+</button>
-		<div id="logger" style="display: inline;"></div>
+		<button id="selectStart" onclick="toggleState(this, STATES.SELECT_START)">Select 🏁</button>
+		<button id="selectGoal" onclick="toggleState(this, STATES.SELECT_GOAL)">Select 🔚</button>
+		<div id="algorithmDetails" style="display: inline;"></div>
+		<div id="logger"></div>
 	</div>
 	<br/>
 </body>

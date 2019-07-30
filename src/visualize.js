@@ -8,7 +8,9 @@ var STATES = {
     VIEW: 1,
     ADD_NODE: 2,
     DELETE_NODE: 3,
-    ADD_EDGE: 4
+    ADD_EDGE: 4,
+    SELECT_START: 5,
+    SELECT_GOAL: 6
 };
 var currState = STATES.VIEW;
 
@@ -41,6 +43,24 @@ function getNewNodeId() {
 function getNewEdgeId() {
     return "edge" + idxNewEdge++;
 }
+
+function changeStartNode(nodeLabel) {
+    opInProgress = true;
+    selectedStart = nodeLabel;
+    resetVisualization();
+    opInProgress = false;
+}
+
+function changeEndNodes(nodeLabel) {
+    opInProgress = true;
+    if(!selectedGoals.has(nodeLabel))
+        selectedGoals.add(nodeLabel);
+    else if(selectedGoals.size > 1)
+        selectedGoals.delete(nodeLabel);
+    resetVisualization();
+    opInProgress = false;
+}
+
 
 class NodeGraphic {
     constructor(id, x, y, label, radius, heuristic) {
@@ -250,6 +270,10 @@ function drawNewNode(canvas, nodeObj, drawInputBoxes = false) {
             newEdgeBuffer.push(nodeObj.label);
             addNewEdge();
         }
+        else if(currState == STATES.SELECT_START)
+            changeStartNode(label);
+        else if(currState == STATES.SELECT_GOAL)
+            changeEndNodes(label);
     }
 
     nodeObj.drawCircle(canvas);
@@ -424,10 +448,15 @@ function toggleState(caller, newState) {
         case STATES.ADD_NODE: newButtonLabel = (turnOff? "node+": "done+"); newLoggerMessage = "Select where to add the new node"; break;
         case STATES.DELETE_NODE: newButtonLabel = (turnOff? "node-": "done-"); newLoggerMessage = "Select which node to remove"; break;
         case STATES.ADD_EDGE: newEdgeBuffer = []; newButtonLabel = (turnOff? "edge+": "done+"); newLoggerMessage = "Select the source node"; break;
+        case STATES.SELECT_START: newButtonLabel = (turnOff? "Select 🏁": "done selecting start"); newLoggerMessage = "Select the start node for path-finding"; break;
+        case STATES.SELECT_GOAL: newButtonLabel = (turnOff? "Select 🔚": "done selecting goals"); newLoggerMessage = "Select the goal node(s) for path-finding"; break;
         default: newButtonLabel = "Unimplemented";
     }
 
-    clearLatestLoggerMessage();
+    // don't override logger messages from other sources
+    if(currState != STATES.VIEW)
+        clearLatestLoggerMessage();
+
     if(!turnOff)
         displayLoggerMessage(newLoggerMessage);
 
@@ -526,13 +555,15 @@ function clearVisualization() {
 }
 
 function resetVisualization() {
+    d3.select("#algorithmDetails").text("");
+    clearLatestLoggerMessage();
     var selectedAlgorithm = d3.select("#selectedAlgorithm").node().value;
-    console.log(selectedAlgorithm);
     clearVisualization();
     updateGraph();
 
     // rerun algorithm on new data
     pathCache = algoToFn[selectedAlgorithm]();
+    d3.select("#algorithmDetails").text("|" + selectedAlgorithm + "💯 from " + selectedStart + " to {" + Array.from(selectedGoals).join(", ") + "}|");
 }
 
 function updateGraph() {
