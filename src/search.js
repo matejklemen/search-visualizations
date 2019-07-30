@@ -278,14 +278,20 @@ function astar(graph, source, target) {
     var currNode = new ReconstructionNode(source, null);
     var distToCurrNode = 0;
     frontier.push([currNode, 0, 0 + nodeData[source]["h"]]);
+    nodesTrace.push(currNode.node);
+    notes.push("Starting at node '" + currNode.node + "' (f = " + 0 + " + " + nodeData[source]["h"] + " = " + (0 + nodeData[source]["h"]) + ")");
 
     while(frontier.length > 0) {
-        [currNode, distToCurrNode, _] = frontier.shift();
+        [currNode, distToCurrNode, fCurrNode] = frontier.shift();
+        var isTarget = target.has(currNode.node);
         nodesTrace.push(currNode.node);
-        if(target.has(currNode.node))
+        notes.push("Taking highest priority node: '" + currNode.node + "' (f = " + fCurrNode + ")" + (currNode.parentNode !== null? " (enqueued from '" + currNode.parentNode.node + "')": "") +
+            " -> " + (isTarget? "": " not") + " a target node -> " + (isTarget? "": " not") + " quitting");
+        if(isTarget)
             break;
 
         var currSuccessors = graph.outEdges[currNode.node];
+        var msg = [];
         for(var successorNode of Object.keys(currSuccessors)) {
             var idEdge = currSuccessors[successorNode];
             var [_, _, weight] = graph.edges[idEdge];
@@ -293,20 +299,32 @@ function astar(graph, source, target) {
             var distToCurrSuccessor = distToCurrNode + weight;
             // TODO: remove this nasty reference to values from a completely different file (add another arg to astar(...) instead)
             var fScore = distToCurrSuccessor + nodeData[successorNode]["h"];
-            // console.log("Assessing successor node " + successorNode + "(dist=" + distToCurrSuccessor + ", f=" + fScore + ")");
+            msg.push("'" + successorNode + "' (f = " + distToCurrSuccessor + " + " + nodeData[successorNode]["h"] + " = " + fScore + ")");
             frontier = insertSorted(frontier, [new ReconstructionNode(successorNode, currNode), distToCurrSuccessor, fScore],
                                     (el1, el2) => (el1[2] > el2[2])) // sort by f-scores
         }
 
+        nodesTrace.push(currNode.node);
         // mark dead end
         if(Object.keys(currSuccessors).length == 0)
-            nodesTrace.push(currNode.node);
+            notes.push("'" + currNode.node + "' has no successors -> not enqueuing anything");
+        else
+            notes.push("Inserting " + msg.join(", ") + " into priority queue");
     }
 
     // Reconstruct path by following parent nodes from goal to source
-    while(currNode !== null) {
-        pathFound.push(currNode.node);
-        currNode = currNode.parentNode;
+    if(target.has(currNode.node)) {
+        while(currNode !== null) {
+            pathFound.push(currNode.node);
+            currNode = currNode.parentNode;
+        }
+        pathFound = pathFound.reverse();
+        nodesTrace.push(pathFound[pathFound.length - 1]);
+        notes.push("Found path: " + pathFound.join("->"));
+    }
+    else {
+        nodesTrace.push(currNode.node);
+        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
     }
 
     return [nodesTrace, pathFound, notes];
