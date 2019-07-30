@@ -104,14 +104,14 @@ function depthFirstSearch(graph, source, target) {
         nodesTrace.push(currNode);
         pathFound.push(currNode);
         var isGoalNode = target.has(currNode);
-        notes.push("'" + currNode + "' is " + (isGoalNode? "": "not") + " a target node -> " + (isGoalNode? "quitting": "not quitting"));
+        notes.push(`'${currNode}' is ${isGoalNode? "": "not"} a target node -> ${isGoalNode? "quitting": "not quitting"}`);
         if(isGoalNode)
             return true;
 
         var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
         for(var i = 0; i < currSuccessors.length; i++) {
             nodesTrace.push(currNode);
-            notes.push("Successors: " + currSuccessors.slice(i).join(", ") + "-> visiting '" + currSuccessors[i] + "'...");
+            notes.push(`Remaining successors: ${currSuccessors.slice(i).map(n => `'${n}'`).join(", ")} -> visiting '${currSuccessors[i]}'`);
             var foundGoal = internalDfs(currSuccessors[i]);
             if(foundGoal)
                 return true;
@@ -119,21 +119,21 @@ function depthFirstSearch(graph, source, target) {
 
         pathFound.pop();
         nodesTrace.push(currNode);
-        notes.push("No remaining successors for node '" + currNode + "' -> backtracking");
+        notes.push(`No remaining successors for node '${currNode}' -> backtracking`);
         return false;
     }
 
     nodesTrace.push(source);
-    notes.push("Starting at node '" + source + "'");
+    notes.push(`Starting at node '${source}'`);
     internalDfs(source);
 
     if(pathFound.length > 0) {
         nodesTrace.push(nodesTrace[nodesTrace.length - 1]);
-        notes.push("Found path: " + pathFound.join("->"));
+        notes.push(`Found path: ${pathFound.join("->")}`);
     }
     else {
         nodesTrace.push(source);
-        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
+        notes.push(`No path found from '${source}' to {${Array.from(target).map(n => `'${n}'`).join(", ")}}`);
     }
 
     return [nodesTrace, pathFound, notes];
@@ -148,7 +148,7 @@ function breadthFirstSearch(graph, source, target) {
     var notes = [];
 
     nodesTrace.push(source);
-    notes.push("Starting at node '" + source + "'");
+    notes.push(`Starting at node '${source}'`);
 
     var currNode = new ReconstructionNode(null, null); // placeholder
     var frontier = [new ReconstructionNode(source, null)];
@@ -157,8 +157,8 @@ function breadthFirstSearch(graph, source, target) {
         var isTarget = target.has(currNode.node);
         
         nodesTrace.push(currNode.node);
-        notes.push("'" + currNode.node + "'" + (currNode.parentNode !== null? " (enqueued from '" + currNode.parentNode.node + "')": "") +
-            " is" + (isTarget? "": " not") + " a target node -> " + (isTarget? "": " not") + " quitting");
+        notes.push(`'${currNode.node}'${currNode.parentNode !== null? ` (enqueued from '${currNode.parentNode.node}')`: ``} is \
+            ${isTarget? "": "not"} a target node -> ${isTarget? ``: `not`} quitting`);
         
         if(isTarget)
             break;
@@ -166,9 +166,9 @@ function breadthFirstSearch(graph, source, target) {
         var currSuccessors = Object.keys(graph.outEdges[currNode.node]).sort();
         nodesTrace.push(currNode.node);
         if(currSuccessors.length > 0)
-            notes.push("Putting " + currSuccessors.join(", ") + " at the end of the queue");
+            notes.push(`Enqueuing successors ${currSuccessors.map(n => `'${n}'`).join(", ")}`);
         else
-            notes.push("No successors at node '" + currNode.node + "'");
+            notes.push(`No successors at node '${currNode.node}'`);
         currSuccessors.forEach(node => frontier.push(new ReconstructionNode(node, currNode)));
     }
 
@@ -181,18 +181,16 @@ function breadthFirstSearch(graph, source, target) {
         }
         pathFound = pathFound.reverse();
         nodesTrace.push(pathFound[pathFound.length - 1]);
-        notes.push("Found path: " + pathFound.join("->"));
+        notes.push(`Found path: ${pathFound.join("->")}`);
     }
     else {
         nodesTrace.push(currNode.node);
-        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
+        notes.push(`No path found from '${source}' to {${Array.from(target).map(n => `'${n}'`).join(", ")}}`);
     }
 
-    console.log(pathFound);
     return [nodesTrace, pathFound, notes];
 }
 
-// TODO: refactor (reuse stuff from depth-first search)
 function iterativeDeepening(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return null;
@@ -207,10 +205,11 @@ function iterativeDeepening(graph, source, target) {
         nodesTrace.push(currNode);
         pathFound.push(currNode);
         if(remainingDepth == 0) {
-            var isGoal = target.has(currNode)
-            notes.push("Hit depth limit -> checking whether '" + currNode + "' is a target node");
+            notes.push(`Hit depth limit -> checking whether '${currNode}' is a target node`);
             nodesTrace.push(currNode);
-            notes.push("'" + currNode + "' is" + (isGoal? " ": " not ") + "a target node");
+
+            var isGoal = target.has(currNode);
+            notes.push(`'${currNode}' is ${isGoal? "": "not"} a target node`);
             if(isGoal)
                 return [true, true];
             else {
