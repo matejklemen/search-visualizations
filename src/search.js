@@ -219,13 +219,13 @@ function iterativeDeepening(graph, source, target) {
             }
         }
         else
-            notes.push("Not at depth limit yet (node '" + currNode+ "'), continuing search");
+            notes.push(`Not at depth limit yet (node '${currNode}'), continuing search`);
 
         var existNodesDeeper = false;
         var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
         for(var i = 0; i < currSuccessors.length; i++) {
             nodesTrace.push(currNode);
-            notes.push("Successors: " + currSuccessors.slice(i).join(", ") + "-> visiting '" + currSuccessors[i] + "'...");
+            notes.push(`Successors: ${currSuccessors.slice(i).map(n => `'${n}'`).join(", ")} -> visiting '${currSuccessors[i]}'`);
             var [foundGoal, nodesDeeper] = internalIterativeDeepening(currSuccessors[i], remainingDepth - 1);
 
             if(foundGoal)
@@ -236,7 +236,7 @@ function iterativeDeepening(graph, source, target) {
 
         pathFound.pop();
         nodesTrace.push(currNode);
-        notes.push("There are no remaining successors at depth <= depth limit for node '" + currNode + "' -> backtracking")
+        notes.push(`There are no remaining successors at depth <= depth limit for node '${currNode}' -> backtracking`);
         return [false, existNodesDeeper];
     }
 
@@ -245,7 +245,8 @@ function iterativeDeepening(graph, source, target) {
     while(!foundGoal && nodesDeeper) {
         depthLimit++;
         nodesTrace.push(source);
-        notes.push((depthLimit > 0? "Res": "S") + "tarting at node '" + source + "' with depth limit " + depthLimit);
+        notes.push(`${depthLimit > 0? `Res`: `S`}tarting at node '${source}' with depth limit ${depthLimit}`);
+        
         [foundGoal, nodesDeeper] = internalIterativeDeepening(source, depthLimit);
         if(!foundGoal)
             pathFound = [];
@@ -253,11 +254,11 @@ function iterativeDeepening(graph, source, target) {
 
     if(pathFound.length > 0) {
         nodesTrace.push(pathFound[pathFound.length - 1]);
-        notes.push("Found path: " + pathFound.join("->"));
+        notes.push(`Found path: ${pathFound.join("->")}`);
     }
     else {
         nodesTrace.push(source);
-        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
+        notes.push(`No path found from '${source}' to {${Array.from(target).map(n => `'${n}'`).join(", ")}}`);
     }
 
     return [nodesTrace, pathFound, notes];
@@ -278,14 +279,14 @@ function astar(graph, source, target) {
     var distToCurrNode = 0;
     frontier.push([currNode, 0, 0 + nodeData[source]["h"]]);
     nodesTrace.push(currNode.node);
-    notes.push("Starting at node '" + currNode.node + "' (f = " + 0 + " + " + nodeData[source]["h"] + " = " + (0 + nodeData[source]["h"]) + ")");
+    notes.push(`Starting at node '${currNode.node}' (f = ${0} + ${nodeData[source]["h"]} = ${0 + nodeData[source]["h"]})`);
 
     while(frontier.length > 0) {
         [currNode, distToCurrNode, fCurrNode] = frontier.shift();
         var isTarget = target.has(currNode.node);
         nodesTrace.push(currNode.node);
-        notes.push("Taking highest priority node: '" + currNode.node + "' (f = " + fCurrNode + ")" + (currNode.parentNode !== null? " (enqueued from '" + currNode.parentNode.node + "')": "") +
-            " -> " + (isTarget? "": " not") + " a target node -> " + (isTarget? "": " not") + " quitting");
+        notes.push(`Taking highest priority node: '${currNode.node}' (f = ${fCurrNode}) ${(currNode.parentNode !== null? " (enqueued from '" + currNode.parentNode.node + "')": "")} \
+            ->${isTarget? "": " not a"} target node -> ${(isTarget? "": "not")} quitting`);
         if(isTarget)
             break;
 
@@ -298,7 +299,7 @@ function astar(graph, source, target) {
             var distToCurrSuccessor = distToCurrNode + weight;
             // TODO: remove this nasty reference to values from a completely different file (add another arg to astar(...) instead)
             var fScore = distToCurrSuccessor + nodeData[successorNode]["h"];
-            msg.push("'" + successorNode + "' (f = " + distToCurrSuccessor + " + " + nodeData[successorNode]["h"] + " = " + fScore + ")");
+            msg.push(`'${successorNode}' (f = ${distToCurrSuccessor} + ${nodeData[successorNode]["h"]} = ${fScore})`);
             frontier = insertSorted(frontier, [new ReconstructionNode(successorNode, currNode), distToCurrSuccessor, fScore],
                                     (el1, el2) => (el1[2] > el2[2])) // sort by f-scores
         }
@@ -306,9 +307,9 @@ function astar(graph, source, target) {
         nodesTrace.push(currNode.node);
         // mark dead end
         if(Object.keys(currSuccessors).length == 0)
-            notes.push("'" + currNode.node + "' has no successors -> not enqueuing anything");
+            notes.push(`'${currNode.node}' has no successors -> not enqueuing anything`);
         else
-            notes.push("Inserting " + msg.join(", ") + " into priority queue");
+            notes.push(`Inserting ${msg.join(", ")} into priority queue`);
     }
 
     // Reconstruct path by following parent nodes from goal to source
@@ -319,11 +320,11 @@ function astar(graph, source, target) {
         }
         pathFound = pathFound.reverse();
         nodesTrace.push(pathFound[pathFound.length - 1]);
-        notes.push("Found path: " + pathFound.join("->"));
+        notes.push(`Found path: ${pathFound.join("->")}`);
     }
     else {
         nodesTrace.push(currNode.node);
-        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
+        notes.push(`No path found from '${source}' to {${Array.from(target).map(n => `'${n}'`).join(", ")}}`);
     }
 
     return [nodesTrace, pathFound, notes];
