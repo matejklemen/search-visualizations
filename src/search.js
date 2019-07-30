@@ -94,7 +94,7 @@ function checkSourceTargetInGraph(graph, source, target) {
 // target... a set of node labels
 function depthFirstSearch(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
-        return;
+        return null;
 
     var nodesTrace = [];
     var pathFound = [];
@@ -141,7 +141,7 @@ function depthFirstSearch(graph, source, target) {
 
 function breadthFirstSearch(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
-        return;
+        return null;
 
     var nodesTrace = [];
     var pathFound = [];
@@ -195,7 +195,7 @@ function breadthFirstSearch(graph, source, target) {
 // TODO: refactor (reuse stuff from depth-first search)
 function iterativeDeepening(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
-        return;
+        return null;
 
     var nodesTrace = [];
     var pathFound = [];
@@ -207,19 +207,26 @@ function iterativeDeepening(graph, source, target) {
         nodesTrace.push(currNode);
         pathFound.push(currNode);
         if(remainingDepth == 0) {
-            if(target.has(currNode))
+            var isGoal = target.has(currNode)
+            notes.push("Hit depth limit -> checking whether '" + currNode + "' is a target node");
+            nodesTrace.push(currNode);
+            notes.push("'" + currNode + "' is" + (isGoal? " ": " not ") + "a target node");
+            if(isGoal)
                 return [true, true];
             else {
                 // dead end
                 pathFound.pop();
-                nodesTrace.push(currNode);
                 return [false, true];
             }
         }
+        else
+            notes.push("Not at depth limit yet (node '" + currNode+ "'), continuing search");
 
         var existNodesDeeper = false;
         var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
         for(var i = 0; i < currSuccessors.length; i++) {
+            nodesTrace.push(currNode);
+            notes.push("Successors: " + currSuccessors.slice(i).join(", ") + "-> visiting '" + currSuccessors[i] + "'...");
             var [foundGoal, nodesDeeper] = internalIterativeDeepening(currSuccessors[i], remainingDepth - 1);
 
             if(foundGoal)
@@ -230,6 +237,7 @@ function iterativeDeepening(graph, source, target) {
 
         pathFound.pop();
         nodesTrace.push(currNode);
+        notes.push("There are no remaining successors at depth <= depth limit for node '" + currNode + "' -> backtracking")
         return [false, existNodesDeeper];
     }
 
@@ -237,9 +245,20 @@ function iterativeDeepening(graph, source, target) {
     var depthLimit = -1;
     while(!foundGoal && nodesDeeper) {
         depthLimit++;
+        nodesTrace.push(source);
+        notes.push((depthLimit > 0? "Res": "S") + "tarting at node '" + source + "' with depth limit " + depthLimit);
         [foundGoal, nodesDeeper] = internalIterativeDeepening(source, depthLimit);
         if(!foundGoal)
             pathFound = [];
+    }
+
+    if(pathFound.length > 0) {
+        nodesTrace.push(pathFound[pathFound.length - 1]);
+        notes.push("Found path: " + pathFound.join("->"));
+    }
+    else {
+        nodesTrace.push(source);
+        notes.push("No path found from '" + source + "' to {" + Array.from(target).join(", ") + "}");
     }
 
     return [nodesTrace, pathFound, notes];
@@ -247,7 +266,7 @@ function iterativeDeepening(graph, source, target) {
 
 function astar(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
-        return;
+        return null;
 
     var pathFound = [];
     var nodesTrace = [];
