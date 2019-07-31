@@ -113,6 +113,16 @@ class NodeGraphic {
     selectElement(element) {
         return d3.select("#" + element + this.id);
     }
+
+    toggleFocus(toggleOn, transitionDurationMs = 0, onEnd = null) {
+        // No-op function if `onEnd` not given
+        var effectiveOnEnd = onEnd == null? (() => {}): onEnd;
+        this.getCircleObj()
+            .transition()
+            .duration(transitionDurationMs)
+            .attr("stroke-width", toggleOn? "10px": "1px")
+            .on("end", onEnd);
+    }
 }
 // (id, x, y, label, radius, heuristic)
 var nodeData = {
@@ -477,18 +487,33 @@ function isCharSeq(data) {
 
 function resetCurrentStep() {
     var nodeLabel = pathCache[0][transitionStep];
-    nodeData[nodeLabel].getCircleObj().attr("stroke-width", "1px");
+    nodeData[nodeLabel].toggleFocus(false);
     clearLatestLoggerMessage();
 }
 
-function nextStepTransition() {
-    if(transitionInProgress)
+function stepTransition(stepDirection) {
+    /* Perform a transition in trace for `stepDirection` steps. If above 0, move forward; if above 0,
+    move backward for specified amount of steps.
+
+    Notes:
+    - inputing 0 amounts to a no-op. 
+    - allows for movement within bounds of trace (i.e. does not work in a circular manner) 
+    */    
+    // no visualization available or transition in progress or invalid input
+    if(pathCache == null || transitionInProgress || stepDirection == 0)
         return;
 
     transitionInProgress = true;
-    var nextStep = (pathCache === null)? 0: d3.min([pathCache[0].length - 1, transitionStep + 1]);
-    // last step of trace
-    if(nextStep == transitionStep) {
+    var newStep;
+    if(stepDirection > 0)
+        // can move forwards to at most the last visible step of visualization
+        newStep = d3.min([pathCache[0].length - 1, transitionStep + stepDirection]);
+    else
+        // can move backwards to at most the step before the first visible one
+        newStep = d3.max([0 - 1, transitionStep + stepDirection]);
+
+    // at end of trace & trying to move forward or at beginning of trace & trying to move backward => no-op
+    if(newStep == transitionStep) {
         transitionInProgress = false;
         return;
     }
@@ -496,52 +521,18 @@ function nextStepTransition() {
     if(transitionStep >= 0)
         resetCurrentStep();
 
-    var currentMessage = pathCache[2][nextStep];
-    displayLoggerMessage(currentMessage);
-    var nodeLabel = pathCache[0][nextStep];
-    nodeData[nodeLabel].getCircleObj()
-            .transition()
-            .duration(500)
-            .attr("stroke-width", "10px")
-            // prevent fast button clicks from messing up the visualization
-            .on("end", function() {
-                transitionStep = nextStep; 
-                transitionInProgress = false;
-            });
-}
-
-function prevStepTransition() {
-    if(transitionInProgress)
-        return;
-
-    transitionInProgress = true;
-    var prevStep = d3.max([0 - 1, transitionStep - 1]);
-    // beginning of trace
-    if(prevStep == transitionStep) {
-        transitionInProgress = false;
-        return;
-    }
-
-    if(transitionStep >= 0)
-        resetCurrentStep();
-
-    if(prevStep >= 0) {
-        var currentMessage = pathCache[2][prevStep];
+    if(newStep >= 0) {
+        var currentMessage = pathCache[2][newStep];
         displayLoggerMessage(currentMessage);
-        var nodeLabel = pathCache[0][prevStep];
-        nodeData[nodeLabel].getCircleObj()
-                .transition()
-                .duration(500)
-                .attr("stroke-width", "10px")
-                // prevent fast button clicks from messing up the visualization
-                .on("end", function() {
-                    transitionStep = prevStep;
-                    transitionInProgress = false;
-                });
+        var nodeLabel = pathCache[0][newStep];
+        nodeData[nodeLabel].toggleFocus(true, transitionDurationMs = 500, onEnd = function() {
+            transitionStep = newStep;
+            transitionInProgress = false;
+        });
     }
+    // at step before the first visible one
     else {
-        // state before first step of trace
-        transitionStep = prevStep;
+        transitionStep = newStep;
         transitionInProgress = false;
     }
 }
@@ -550,8 +541,7 @@ function prevStepTransition() {
 function clearVisualization() {
     // state before first step of trace
     transitionStep = -1;
-    d3.selectAll("circle")
-        .attr("stroke-width", "1px");
+    Object.values(nodeData).forEach(n => n.toggleFocus(false, transitionDurationMs = 50));
 }
 
 function resetVisualization() {
@@ -596,9 +586,9 @@ canvas.on("click", function() {
 document.onkeydown = function (e) {
     e = e || window.event;
     switch (e.which || e.keyCode) {
-        case LEFT_KEYPRESS: prevStepTransition();
+        case LEFT_KEYPRESS: stepTransition(-1);
             break;
-        case RIGHT_KEYPRESS: nextStepTransition();
+        case RIGHT_KEYPRESS: stepTransition(1);
             break;
     }
 }
