@@ -21,6 +21,19 @@ canvas.append("svg:defs").append("svg:marker")
     .attr("d", "M 0 0 12 6 0 12 3 6")
     .style("fill", "black");
 
+/* Glow effect - https://www.visualcinnamon.com/2016/06/glow-filter-d3-visualization.html */
+var defs = canvas.append("defs");
+var filter = defs.append("filter")
+    .attr("id","glow");
+filter.append("feGaussianBlur")
+    .attr("stdDeviation","1.5")
+    .attr("result","coloredBlur");
+var feMerge = filter.append("feMerge");
+feMerge.append("feMergeNode")
+    .attr("in","coloredBlur");
+feMerge.append("feMergeNode")
+    .attr("in","SourceGraphic");
+
 function drawNodeCircle(canvas, idNode, x, y, radius) {
     canvas.append("circle")
         .attr("id", idNode)
@@ -29,7 +42,8 @@ function drawNodeCircle(canvas, idNode, x, y, radius) {
         .attr("r", radius)
         .attr("fill", "blue")
         .attr("stroke", "black")
-        .attr("stroke-width", "1px");
+        .attr("stroke-width", "1px")
+        .style("filter", "url(#glow)");
 }
 
 function drawLabelText(canvas, idNode, nodeLabel, x, y) {

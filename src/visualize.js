@@ -120,7 +120,7 @@ class NodeGraphic {
         this.getCircleObj()
             .transition()
             .duration(transitionDurationMs)
-            .attr("stroke-width", toggleOn? "10px": "1px")
+            .attr("stroke-width", toggleOn? "6px": "1px")
             .on("end", onEnd);
     }
 }
