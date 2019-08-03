@@ -5,21 +5,21 @@
 </head>
 <body>
 	<div id="toolbar">
-		<select id="selectedAlgorithm" onchange="resetVisualization()" selected="dfs">
+		<select id="selectedAlgorithm" class="toolbar-btn" onchange="resetVisualization()" selected="dfs">
 			<option value="dfs">Depth-first search</option>
 			<option value="bfs">Breadth-first search</option>
 			<option value="iddfs">Iterative deepening search</option>>
 			<option value="astar">A* search</option>
 			<option value="rbfs">Recursive best-first search (TODO)</option>
 		</select>
-		<button onclick="stepTransition(-1)">👈</button>
-		<button onclick="stepTransition(1)">👉</button>
-		<button id="reset" onclick="resetVisualization()">🚫</button>
-		<button id="addNode" onclick="toggleState(this, STATES.ADD_NODE)">node+</button>
-		<button id="removeNode" onclick="toggleState(this, STATES.DELETE_NODE)">node-</button>
-		<button id="addEdge" onclick="toggleState(this, STATES.ADD_EDGE)">edge+</button>
-		<button id="selectStart" onclick="toggleState(this, STATES.SELECT_START)">Select 🏁</button>
-		<button id="selectGoal" onclick="toggleState(this, STATES.SELECT_GOAL)">Select 🔚</button>
+		<button id="prevStep" class="toolbar-btn" onclick="stepTransition(-1)">←</button>
+		<button id="nextStep" class="toolbar-btn" onclick="stepTransition(1)">→</button>
+		<button id="reset" class="toolbar-btn" onclick="resetVisualization()">Reset</button>
+		<button id="addNode" class="toolbar-btn" onclick="toggleState(this, STATES.ADD_NODE)">➕ node</button>
+		<button id="removeNode" class="toolbar-btn" onclick="toggleState(this, STATES.DELETE_NODE)">➖ node</button>
+		<button id="addEdge" class="toolbar-btn" onclick="toggleState(this, STATES.ADD_EDGE)">➕ edge</button>
+		<button id="selectStart" class="toolbar-btn" onclick="toggleState(this, STATES.SELECT_START)">Select start</button>
+		<button id="selectGoal" class="toolbar-btn" onclick="toggleState(this, STATES.SELECT_GOAL)">Select goal(s)</button>
 		<div id="algorithmDetails" style="display: inline;"></div>
 		<div id="logger"></div>
 	</div>

@@ -290,7 +290,6 @@ function drawNewNode(canvas, nodeObj, drawInputBoxes = false) {
     nodeObj.drawHeuristicBox(canvas);
 
     if(drawInputBoxes) {
-        displayLoggerMessage("Input the node's heuristic value");
         // input for heuristic
         drawInput(canvas, "newNodeHeuristic", (nodeObj.x - nodeObj.r / 4), (nodeObj.y - 3 * nodeObj.r / 2), nodeObj.r, "18px", "black", "bold", function() {
             if(d3.event.keyCode != ENTER_KEYPRESS)
@@ -305,8 +304,6 @@ function drawNewNode(canvas, nodeObj, drawInputBoxes = false) {
             canvas.select("#newNodeHeuristic").remove();
             canvas.select("foreignObject").remove();
 
-            clearLatestLoggerMessage();
-            displayLoggerMessage("Input the node's label");            
             // input for node label after the user enters the heuristic
             drawInput(canvas, "newNodeLabel", (nodeObj.x - nodeObj.r / 4), (nodeObj.y - nodeObj.r / 2), nodeObj.r, "24px", "white", "normal", function() {
                 if(d3.event.keyCode != ENTER_KEYPRESS)
@@ -325,7 +322,6 @@ function drawNewNode(canvas, nodeObj, drawInputBoxes = false) {
                 nodeData[nodeObj.label] = nodeObj;
                 updateGraph();
                 opInProgress = false;
-                clearLatestLoggerMessage();
             });
         });
     }
@@ -371,8 +367,6 @@ function drawNewEdge(canvas, idEdge, srcNode, dstNode, weight, drawInputBox = fa
     drawDirectedEdgeLine(canvas, idEdge, xStart, yStart, xEnd, yEnd);
 
     if(drawInputBox) {
-        clearLatestLoggerMessage();
-        displayLoggerMessage("Input the edge's weight");
         // get user input
         drawInput(canvas, "newEdgeWeight", xWeight, yWeight, NODE_RADIUS, "14px", "red", "bold", function() {
             if(d3.event.keyCode != ENTER_KEYPRESS)
@@ -396,8 +390,6 @@ function drawNewEdge(canvas, idEdge, srcNode, dstNode, weight, drawInputBox = fa
 
             edgeList[idEdge] = [srcNode, dstNode, newEdgeWeight];
             updateGraph();
-            clearLatestLoggerMessage();
-            displayLoggerMessage("Select the source node");
             opInProgress = false;
         });
     }
@@ -414,11 +406,6 @@ function addNewEdge() {
     if(currState != STATES.ADD_EDGE || opInProgress)
         return;
 
-    if(newEdgeBuffer.length == 1) {
-        clearLatestLoggerMessage();
-        displayLoggerMessage("Select the target node");
-    }
-
     // need 2 nodes (possibly same) to form an edge
     if(newEdgeBuffer.length < 2)
         return;
@@ -427,7 +414,6 @@ function addNewEdge() {
     // check that the edge doesn't already exist
     if(dstNode in dwg.outEdges[srcNode]) {
         console.log("A directed edge between '" + srcNode + "' and '" + dstNode + "' already exists.");
-        clearLatestLoggerMessage();
         newEdgeBuffer = [];
         return;
     }
@@ -435,7 +421,6 @@ function addNewEdge() {
     // TODO
     if(srcNode == dstNode) {
         console.log("TODO (Not implemented): Figure out how to draw self-loops");
-        clearLatestLoggerMessage();
         newEdgeBuffer = [];
         return;
     }
@@ -452,28 +437,25 @@ function toggleState(caller, newState) {
 
     opInProgress = true;
     var turnOff = (currState == newState);
-    var newButtonLabel, newLoggerMessage;
+    // visually show which state is selected
+    var newButtonColor = turnOff? "white": "#DEDEDE";
 
-    switch(newState) {
-        case STATES.ADD_NODE: newButtonLabel = (turnOff? "node+": "done+"); newLoggerMessage = "Select where to add the new node"; break;
-        case STATES.DELETE_NODE: newButtonLabel = (turnOff? "node-": "done-"); newLoggerMessage = "Select which node to remove"; break;
-        case STATES.ADD_EDGE: newEdgeBuffer = []; newButtonLabel = (turnOff? "edge+": "done+"); newLoggerMessage = "Select the source node"; break;
-        case STATES.SELECT_START: newButtonLabel = (turnOff? "Select 🏁": "done selecting start"); newLoggerMessage = "Select the start node for path-finding"; break;
-        case STATES.SELECT_GOAL: newButtonLabel = (turnOff? "Select 🔚": "done selecting goals"); newLoggerMessage = "Select the goal node(s) for path-finding"; break;
-        default: newButtonLabel = "Unimplemented";
-    }
-
-    // don't override logger messages from other sources
-    if(currState != STATES.VIEW)
-        clearLatestLoggerMessage();
-
-    if(!turnOff)
-        displayLoggerMessage(newLoggerMessage);
-
-    d3.select("#" + caller.id).text(newButtonLabel).transition().on("end", function() {
-        currState = (turnOff? STATES.VIEW: newState);
-        opInProgress = false;
-    });
+    d3.select("#" + caller.id)
+        .style("background-color", newButtonColor)
+        /* reset previously set properties of button */
+        .on("mouseover", function() {
+            if(turnOff)
+                d3.select("#" + caller.id).style("background-color", "#F5F5F5");
+        })
+        .on("mouseout", function() {
+            if(turnOff)
+                d3.select("#" + caller.id).style("background-color", "white")
+        })
+        .transition()
+        .on("end", function() {
+            currState = (turnOff? STATES.VIEW: newState);
+            opInProgress = false;
+        });
 }
 
 /* Note: actually only matches non-negative numbers */
