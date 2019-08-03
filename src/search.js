@@ -2,7 +2,7 @@ class DirectedWeightedGraph {
     /*
         Instructions to use this class:
         (1.) Create a DirectedWeightedGraph
-        >> var G = new DirectedWeightedGraph();
+        >> let G = new DirectedWeightedGraph();
         (2.) Add nodes to created graph.
         >> G.addNodesFrom(["a", "b", "c"]);
         (3.) Add edges to created graph. NOTE: Nodes that are connected with an edge must be manually 
@@ -18,8 +18,8 @@ class DirectedWeightedGraph {
 
     addNodesFrom(nodes) {
         // nodes... iterable of node labels
-        for(var i = 0; i < nodes.length; i++) {
-            var nodeLabel = nodes[i];
+        for(let i = 0; i < nodes.length; i++) {
+            const nodeLabel = nodes[i];
             this.nodes.add(nodeLabel);
             this.inEdges[nodeLabel] = {};
             this.outEdges[nodeLabel] = {};
@@ -28,8 +28,8 @@ class DirectedWeightedGraph {
 
     addEdgesFrom(edges) {
         // edges... dictionary of {edgeId: [srcNode, dstNode, weight]}
-        for(var edgeId in edges) {
-            var [srcNode, dstNode, weight] = edges[edgeId];
+        for(let edgeId in edges) {
+            const [srcNode, dstNode, weight] = edges[edgeId];
             this.edges[edgeId] = edges[edgeId];
             this.inEdges[dstNode][srcNode] = edgeId;
             this.outEdges[srcNode][dstNode] = edgeId;
@@ -43,7 +43,7 @@ class DirectedWeightedGraph {
     }
 
     removeEdge(edge) {
-        var [src, dst, w] = edge;
+        const [src, dst, w] = edge;
         delete this.outEdges[src][dst];
         delete this.inEdges[dst][src];
     }
@@ -58,8 +58,8 @@ class ReconstructionNode {
 
 // TODO: can you make an uglier sorting sorted insertion? (refactor this!)
 function insertSorted(l, el, cmp=(el1, el2) => (el1 > el2)) {
-    var newList = [];
-    var idx = 0;
+    let newList = [];
+    let idx = 0;
     // copy lower or equal elements
     while(idx < l.length && cmp(l[idx], el) <= 0) {
         newList.push(l[idx]);
@@ -83,10 +83,10 @@ function checkSourceTargetInGraph(graph, source, target) {
         return false;
     }
 
-    for(var n of target.keys())
-        // Allow searching for targets that are not in graph, but warn the user
+    target.forEach(function(n) {
         if(!graph.nodes.has(n))
-            console.warn("***Target node '" + n + "' not in graph ***");
+            console.log(`***Target node '${n}' not in graph ***`);
+    });
 
     return true;
 }
@@ -96,23 +96,23 @@ function depthFirstSearch(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return null;
 
-    var nodesTrace = [];
-    var pathFound = [];
-    var notes = [];
+    let nodesTrace = [];
+    let pathFound = [];
+    let notes = [];
 
     function internalDfs(currNode) {
         nodesTrace.push(currNode);
         pathFound.push(currNode);
-        var isGoalNode = target.has(currNode);
+        const isGoalNode = target.has(currNode);
         notes.push(`'${currNode}' is ${isGoalNode? "": "not"} a target node -> ${isGoalNode? "quitting": "not quitting"}`);
         if(isGoalNode)
             return true;
 
-        var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
-        for(var i = 0; i < currSuccessors.length; i++) {
+        const currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
+        for(let i = 0; i < currSuccessors.length; i++) {
             nodesTrace.push(currNode);
             notes.push(`Remaining successors: ${currSuccessors.slice(i).map(n => `'${n}'`).join(", ")} -> visiting '${currSuccessors[i]}'`);
-            var foundGoal = internalDfs(currSuccessors[i]);
+            const foundGoal = internalDfs(currSuccessors[i]);
             if(foundGoal)
                 return true;
         }
@@ -143,18 +143,18 @@ function breadthFirstSearch(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return null;
 
-    var nodesTrace = [];
-    var pathFound = [];
-    var notes = [];
+    let nodesTrace = [];
+    let pathFound = [];
+    let notes = [];
 
     nodesTrace.push(source);
     notes.push(`Starting at node '${source}'`);
 
-    var currNode = new ReconstructionNode(null, null); // placeholder
-    var frontier = [new ReconstructionNode(source, null)];
+    let currNode = new ReconstructionNode(null, null); // placeholder
+    let frontier = [new ReconstructionNode(source, null)];
     while(frontier.length > 0) {
         currNode = frontier.shift();
-        var isTarget = target.has(currNode.node);
+        const isTarget = target.has(currNode.node);
         
         nodesTrace.push(currNode.node);
         notes.push(`'${currNode.node}'${currNode.parentNode !== null? ` (enqueued from '${currNode.parentNode.node}')`: ``} is \
@@ -163,7 +163,7 @@ function breadthFirstSearch(graph, source, target) {
         if(isTarget)
             break;
 
-        var currSuccessors = Object.keys(graph.outEdges[currNode.node]).sort();
+        const currSuccessors = Object.keys(graph.outEdges[currNode.node]).sort();
         nodesTrace.push(currNode.node);
         if(currSuccessors.length > 0)
             notes.push(`Enqueuing successors ${currSuccessors.map(n => `'${n}'`).join(", ")}`);
@@ -195,9 +195,9 @@ function iterativeDeepening(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return null;
 
-    var nodesTrace = [];
-    var pathFound = [];
-    var notes = [];
+    let nodesTrace = [];
+    let pathFound = [];
+    let notes = [];
 
     /* Returns 2 flags: first one indicates whether goal was found, second one indicates 
         whether there are any nodes at depth bigger than current limit */
@@ -208,7 +208,7 @@ function iterativeDeepening(graph, source, target) {
             notes.push(`Hit depth limit -> checking whether '${currNode}' is a target node`);
             nodesTrace.push(currNode);
 
-            var isGoal = target.has(currNode);
+            const isGoal = target.has(currNode);
             notes.push(`'${currNode}' is ${isGoal? "": "not"} a target node`);
             if(isGoal)
                 return [true, true];
@@ -221,12 +221,12 @@ function iterativeDeepening(graph, source, target) {
         else
             notes.push(`Not at depth limit yet (node '${currNode}'), continuing search`);
 
-        var existNodesDeeper = false;
-        var currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
-        for(var i = 0; i < currSuccessors.length; i++) {
+        let existNodesDeeper = false;
+        const currSuccessors = Object.keys(graph.outEdges[currNode]).sort();
+        for(let i = 0; i < currSuccessors.length; i++) {
             nodesTrace.push(currNode);
             notes.push(`Successors: ${currSuccessors.slice(i).map(n => `'${n}'`).join(", ")} -> visiting '${currSuccessors[i]}'`);
-            var [foundGoal, nodesDeeper] = internalIterativeDeepening(currSuccessors[i], remainingDepth - 1);
+            const [foundGoal, nodesDeeper] = internalIterativeDeepening(currSuccessors[i], remainingDepth - 1);
 
             if(foundGoal)
                 return [true, nodesDeeper]; 
@@ -240,8 +240,8 @@ function iterativeDeepening(graph, source, target) {
         return [false, existNodesDeeper];
     }
 
-    var [foundGoal, nodesDeeper] = [false, true];
-    var depthLimit = -1;
+    let [foundGoal, nodesDeeper] = [false, true];
+    let depthLimit = -1;
     while(!foundGoal && nodesDeeper) {
         depthLimit++;
         nodesTrace.push(source);
@@ -268,37 +268,37 @@ function astar(graph, source, target) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return null;
 
-    var pathFound = [];
-    var nodesTrace = [];
-    var notes = [];
+    let pathFound = [];
+    let nodesTrace = [];
+    let notes = [];
 
     // TODO: extremely inefficient -> should be a heap
     // stores (<ReconstructionNode>, actual path length to node, f-score) pairs (lists), ordered by increasing f-score
-    var frontier = [];
-    var currNode = new ReconstructionNode(source, null);
-    var distToCurrNode = 0;
+    let frontier = [];
+    let currNode = new ReconstructionNode(source, null);
+    let distToCurrNode = 0;
     frontier.push([currNode, 0, 0 + nodeData[source]["h"]]);
     nodesTrace.push(currNode.node);
     notes.push(`Initially enqueuing node '${currNode.node}' (f = ${0} + ${nodeData[source]["h"]} = ${0 + nodeData[source]["h"]})`);
 
     while(frontier.length > 0) {
         [currNode, distToCurrNode, fCurrNode] = frontier.shift();
-        var isTarget = target.has(currNode.node);
+        const isTarget = target.has(currNode.node);
         nodesTrace.push(currNode.node);
         notes.push(`Taking highest priority node: '${currNode.node}' (f = ${fCurrNode}) ${(currNode.parentNode !== null? " (enqueued from '" + currNode.parentNode.node + "')": "")} \
             ->${isTarget? "": " not a"} target node -> ${(isTarget? "": "not")} quitting`);
         if(isTarget)
             break;
 
-        var currSuccessors = graph.outEdges[currNode.node];
-        var msg = [];
-        for(var successorNode of Object.keys(currSuccessors)) {
-            var idEdge = currSuccessors[successorNode];
-            var [_, _, weight] = graph.edges[idEdge];
+        const currSuccessors = graph.outEdges[currNode.node];
+        let msg = [];
+        for(let successorNode of Object.keys(currSuccessors)) {
+            const idEdge = currSuccessors[successorNode];
+            const [,, weight] = graph.edges[idEdge];
 
-            var distToCurrSuccessor = distToCurrNode + weight;
+            const distToCurrSuccessor = distToCurrNode + weight;
             // TODO: remove this nasty reference to values from a completely different file (add another arg to astar(...) instead)
-            var fScore = distToCurrSuccessor + nodeData[successorNode]["h"];
+            const fScore = distToCurrSuccessor + nodeData[successorNode]["h"];
             msg.push(`'${successorNode}' (f = ${distToCurrSuccessor} + ${nodeData[successorNode]["h"]} = ${fScore})`);
             frontier = insertSorted(frontier, [new ReconstructionNode(successorNode, currNode), distToCurrSuccessor, fScore],
                                     (el1, el2) => (el1[2] > el2[2])) // sort by f-scores

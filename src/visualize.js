@@ -1,10 +1,10 @@
-var LEFT_KEYPRESS = 37;
-var RIGHT_KEYPRESS = 39;
-var ENTER_KEYPRESS = 13;
+const LEFT_KEYPRESS = 37;
+const RIGHT_KEYPRESS = 39;
+const ENTER_KEYPRESS = 13;
 
-var NODE_RADIUS = 30;
+const NODE_RADIUS = 30;
 
-var STATES = {
+const STATES = {
     VIEW: 1,
     ADD_NODE: 2,
     DELETE_NODE: 3,
@@ -12,22 +12,22 @@ var STATES = {
     SELECT_START: 5,
     SELECT_GOAL: 6
 };
-var currState = STATES.VIEW;
+let currState = STATES.VIEW;
 
 /* op. is e.g. add/delete node, transition is search trace step */
-var opInProgress = false;
-var transitionInProgress = false;
+let opInProgress = false;
+let transitionInProgress = false;
 
-var newEdgeBuffer = [];
-var pathCache = null;
-var idxNewNode = 0;
-var idxNewEdge = 0;
+let newEdgeBuffer = [];
+let pathCache = null;
+let idxNewNode = 0;
+let idxNewEdge = 0;
 
-var transitionStep = -1; // step before actual first step
-var selectedStart = "s";
-var selectedGoals = new Set(["k", "g"]);
+let transitionStep = -1; // step before actual first step
+let selectedStart = "s";
+let selectedGoals = new Set(["k", "g"]);
 
-var algoToFn = {
+const algoToFn = {
     "dfs": {
         "name": "DFS",
         "fn": (() => depthFirstSearch(dwg, selectedStart, selectedGoals))
@@ -46,7 +46,7 @@ var algoToFn = {
     }
 };
 
-var dwg = new DirectedWeightedGraph();
+let dwg = new DirectedWeightedGraph();
 
 function getNewNodeId() {
     return "node" + idxNewNode++;
@@ -72,7 +72,6 @@ function changeEndNodes(nodeLabel) {
     resetVisualization();
     opInProgress = false;
 }
-
 
 class NodeGraphic {
     constructor(id, x, y, label, radius, heuristic) {
@@ -136,6 +135,7 @@ class NodeGraphic {
             .on("end", onEnd);
     }
 }
+
 // (id, x, y, label, radius, heuristic)
 var nodeData = {
     "s": new NodeGraphic(getNewNodeId(), 500, 50, "s", NODE_RADIUS, 7),
@@ -172,19 +172,18 @@ var edgesWithoutId = [
     ["f", "i", 3],
     ["f", "g", 2]
 ];
-var edgeList = {}
+let edgeList = {}
 edgesWithoutId.forEach(edge => edgeList[getNewEdgeId()] = edge);
 
 function nodesOverlappingArea(xLeftArea, xRightArea, yTopArea, yBottomArea) {
-    var nodes = [];
-    for(var nodeLabel in nodeData) {
-        console.log("" + nodeLabel);
-        // take a rectangle, drawn around node + its heuristic graphic as the node's area
-        var currNode = nodeData[nodeLabel];
-        var [xLeft, xRight, yTop, yBottom] = [currNode.x - currNode.r, currNode.x + currNode.r,
+    let nodes = [];
+    for(let nodeLabel in nodeData) {
+        // take a rectangle drawn around node + its heuristic graphic as the node's effective area
+        const currNode = nodeData[nodeLabel];
+        const [xLeft, xRight, yTop, yBottom] = [currNode.x - currNode.r, currNode.x + currNode.r,
                                             currNode.y - 1.5 * currNode.r, currNode.y + currNode.r];
 
-        var inArea = !(xLeft > xRightArea || xRight < xLeftArea || yTop > yBottomArea || yBottom < yTopArea);
+        const inArea = !(xLeft > xRightArea || xRight < xLeftArea || yTop > yBottomArea || yBottom < yTopArea);
         if(inArea)
             nodes.push(nodeLabel);
     }
@@ -194,22 +193,22 @@ function nodesOverlappingArea(xLeftArea, xRightArea, yTopArea, yBottomArea) {
 
 function angleBetweenPoints(x1, y1, x2, y2) {
     // https://stackoverflow.com/a/27481611
-    var deltaY = (y1 - y2);
-    var deltaX = (x2 - x1);
-    var result = Math.atan2(deltaY, deltaX);
+    const deltaY = (y1 - y2);
+    const deltaX = (x2 - x1);
+    const result = Math.atan2(deltaY, deltaX);
     return (result < 0) ? (2 * Math.PI + result): result;
 }
 
 /* Determines edge start and end in a way that the circles do not overlap with lines, 
     but rather that the lines touch the boundary of the circles. */
 function fixEdgeStartEnd(edge) {
-    var [srcLabel, dstLabel, _] = edge;
-    var srcNode = nodeData[srcLabel];
-    var dstNode = nodeData[dstLabel];
+    const [srcLabel, dstLabel, _] = edge;
+    const srcNode = nodeData[srcLabel];
+    const dstNode = nodeData[dstLabel];
 
     // Subtracting angle from 2PI because of screen coordinates being different (0, 0 is top-left corner)
-    var angleSrcDst = 2 * Math.PI - angleBetweenPoints(srcNode.x, srcNode.y, dstNode.x, dstNode.y);
-    var angleDstSrc = 2 * Math.PI - angleBetweenPoints(dstNode.x, dstNode.y, srcNode.x, srcNode.y);
+    const angleSrcDst = 2 * Math.PI - angleBetweenPoints(srcNode.x, srcNode.y, dstNode.x, dstNode.y);
+    const angleDstSrc = 2 * Math.PI - angleBetweenPoints(dstNode.x, dstNode.y, srcNode.x, srcNode.y);
     // https://stackoverflow.com/questions/5300938/calculating-the-position-of-points-in-a-circle
     return [srcNode.x + NODE_RADIUS * Math.cos(angleSrcDst),
             srcNode.y + NODE_RADIUS * Math.sin(angleSrcDst),
@@ -219,20 +218,19 @@ function fixEdgeStartEnd(edge) {
 
 // TODO: refactor this (reuse common functionality from `fixEdgeStartEnd`) - maybe add an optional SCALE parameter
 function distanceLabelAndLocation(edge) {
-    // returns {"label": weight of edge, "x": x position of label, "y": y position of label}
-    var [srcLabel, dstLabel, dist] = edge;
-    var srcNode = nodeData[srcLabel];
-    var dstNode = nodeData[dstLabel];
+    const [srcLabel, dstLabel, dist] = edge;
+    const srcNode = nodeData[srcLabel];
+    const dstNode = nodeData[dstLabel];
 
     // should be between 0 and 1, 0 means label is closer to source node, 1 means closer to dst node
-    SCALE = 0.2
+    const SCALE = 0.2
 
-    /* Subtracting angle from 2PI because (0, 0) is in top-left corner in screen coordinates. */
-    var angleSrcDst = 2 * Math.PI - angleBetweenPoints(srcNode.x, srcNode.y, dstNode.x, dstNode.y);
-    var angleDstSrc = 2 * Math.PI - angleBetweenPoints(dstNode.x, dstNode.y, srcNode.x, srcNode.y);
-    var [startX, startY, endX, endY] = fixEdgeStartEnd(edge);
+    // subtracting angle from 2PI because (0, 0) is in top-left corner in screen coordinates
+    const angleSrcDst = 2 * Math.PI - angleBetweenPoints(srcNode.x, srcNode.y, dstNode.x, dstNode.y);
+    const angleDstSrc = 2 * Math.PI - angleBetweenPoints(dstNode.x, dstNode.y, srcNode.x, srcNode.y);
+    const [startX, startY, endX, endY] = fixEdgeStartEnd(edge);
 
-    OFFSET = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) * SCALE;
+    const OFFSET = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) * SCALE;
     return [srcNode.x + (NODE_RADIUS + OFFSET) * Math.cos(angleSrcDst),
             srcNode.y + (NODE_RADIUS + OFFSET) * Math.sin(angleSrcDst)];
 }
@@ -243,7 +241,7 @@ function deleteNodeAndEdges(graph, nodeLabel) {
         return;
 
     opInProgress = true;
-    var foundItems = new Set();
+    let foundItems = new Set();
     // handle node circle element, label, heuristic text and heuristic box
     foundItems.add(nodeData[nodeLabel].id);
     foundItems.add("label_" + nodeData[nodeLabel].id);
@@ -254,9 +252,8 @@ function deleteNodeAndEdges(graph, nodeLabel) {
     foundItems.add("delete_" + nodeData[nodeLabel].id);
 
     // handle lines of out-edges and text of weights
-    var successors = Object.values(dwg.outEdges[nodeLabel]);
-    for(var i = 0; i < successors.length; i++) {
-        console.log(successors[i])
+    const successors = Object.values(dwg.outEdges[nodeLabel]);
+    for(let i = 0; i < successors.length; i++) {
         foundItems.add(successors[i]);
         foundItems.add("w_" + successors[i]);
         graph.removeEdge(edgeList[successors[i]]);
@@ -264,9 +261,8 @@ function deleteNodeAndEdges(graph, nodeLabel) {
     }
 
     // handle lines of in-edges and text of weights
-    var predecessors = Object.values(dwg.inEdges[nodeLabel]);
-    for(var i = 0; i < predecessors.length; i++) {
-        console.log(predecessors[i]);
+    const predecessors = Object.values(dwg.inEdges[nodeLabel]);
+    for(let i = 0; i < predecessors.length; i++) {
         foundItems.add(predecessors[i]);
         foundItems.add("w_" + predecessors[i]);
         graph.removeEdge(edgeList[predecessors[i]]);
@@ -307,11 +303,11 @@ function drawNewNode(canvas, nodeObj, drawInputBoxes = false) {
             if(d3.event.keyCode != ENTER_KEYPRESS)
                 return;
 
-            var newHeuristicValue = canvas.select("#newNodeHeuristic").node().value;
+            const newHeuristicValue = canvas.select("#newNodeHeuristic").node().value;
             if(!isNumber(newHeuristicValue))
                 return;
 
-            nodeObj.h = newHeuristicValue;
+            nodeObj.h = parseInt(newHeuristicValue);
             nodeObj.drawHeuristicVal(canvas);
             canvas.select("#newNodeHeuristic").remove();
             canvas.select("foreignObject").remove();
@@ -321,7 +317,7 @@ function drawNewNode(canvas, nodeObj, drawInputBoxes = false) {
                 if(d3.event.keyCode != ENTER_KEYPRESS)
                     return;
 
-                var newNodeLabel = canvas.select("#newNodeLabel").node().value;
+                const newNodeLabel = canvas.select("#newNodeLabel").node().value;
                 if(!isCharSeq(newNodeLabel) || (newNodeLabel in nodeData))
                     return;
                 
@@ -353,28 +349,28 @@ function addNewNode(x, y) {
         return;
 
     // check for overlap
-    for(var nodeLabel in nodeData) {
-        var currNodeData = nodeData[nodeLabel];
+    for(let nodeLabel in nodeData) {
+        const currNodeData = nodeData[nodeLabel];
 
-        var leftX = currNodeData.x - NODE_RADIUS;
-        var rightX = currNodeData.x + NODE_RADIUS;
-        var topY = currNodeData.y - NODE_RADIUS;
-        var bottomY = currNodeData.y + NODE_RADIUS;
+        const leftX = currNodeData.x - NODE_RADIUS;
+        const rightX = currNodeData.x + NODE_RADIUS;
+        const topY = currNodeData.y - NODE_RADIUS;
+        const bottomY = currNodeData.y + NODE_RADIUS;
 
         if(leftX <= x && x <= rightX && topY <= y && y <= bottomY)
             return;
     }
 
     opInProgress = true;
-    var idNodeElement = getNewNodeId();
-    var newNodeObj = new NodeGraphic(idNodeElement, x, y, null, NODE_RADIUS, null);
+    const idNodeElement = getNewNodeId();
+    const newNodeObj = new NodeGraphic(idNodeElement, x, y, null, NODE_RADIUS, null);
     drawNewNode(canvas, newNodeObj, true);
 }
 
 function drawNewEdge(canvas, idEdge, srcNode, dstNode, weight, drawInputBox = false) {
     // coordinates for edge from boundary of first node's circle to boundary of second node's circle 
-    var [xStart, yStart, xEnd, yEnd] = fixEdgeStartEnd([srcNode, dstNode, weight]);
-    var [xWeight, yWeight] = distanceLabelAndLocation([srcNode, dstNode, weight]);
+    const [xStart, yStart, xEnd, yEnd] = fixEdgeStartEnd([srcNode, dstNode, weight]);
+    const [xWeight, yWeight] = distanceLabelAndLocation([srcNode, dstNode, weight]);
 
     drawDirectedEdgeLine(canvas, idEdge, xStart, yStart, xEnd, yEnd);
 
@@ -384,18 +380,19 @@ function drawNewEdge(canvas, idEdge, srcNode, dstNode, weight, drawInputBox = fa
             if(d3.event.keyCode != ENTER_KEYPRESS)
                 return;
 
-            var newEdgeWeight = canvas.select("#newEdgeWeight").node().value;
+            let newEdgeWeight = canvas.select("#newEdgeWeight").node().value;
             if(!isNumber(newEdgeWeight))
                 return;
 
-            drawEdgeWeight(canvas, idEdge, xWeight, yWeight, parseInt(newEdgeWeight));
+            newEdgeWeight = parseInt(newEdgeWeight);
+            drawEdgeWeight(canvas, idEdge, xWeight, yWeight, newEdgeWeight);
             canvas.select("#newEdgeWeight").remove();
             canvas.select("foreignObject").remove();
 
             // find & redraw nodes, which might overlap with new edge to make sure that edge is drawn in background
-            var nodesToRedraw = nodesOverlappingArea(d3.min([xStart, xEnd]), d3.max([xStart, xEnd]), 
-                                                    d3.min([yStart, yEnd]), d3.max([yStart, yEnd]));
-            for(var i = 0; i < nodesToRedraw.length; i++) {
+            const nodesToRedraw = nodesOverlappingArea(d3.min([xStart, xEnd]), d3.max([xStart, xEnd]),
+                d3.min([yStart, yEnd]), d3.max([yStart, yEnd]));
+            for(let i = 0; i < nodesToRedraw.length; i++) {
                 nodeData[nodesToRedraw[i]].getAllComponents().forEach(comp => comp.remove());
                 nodeData[nodesToRedraw[i]].redrawNode(canvas);
             }
@@ -422,7 +419,7 @@ function addNewEdge() {
     if(newEdgeBuffer.length < 2)
         return;
 
-    var [srcNode, dstNode] = newEdgeBuffer;
+    const [srcNode, dstNode] = newEdgeBuffer;
     // check that the edge doesn't already exist
     if(dstNode in dwg.outEdges[srcNode]) {
         console.log("A directed edge between '" + srcNode + "' and '" + dstNode + "' already exists.");
@@ -448,13 +445,13 @@ function toggleState(caller, newState) {
         return;
 
     opInProgress = true;
-    var turnOff = (currState == newState);
+    const turnOff = (currState == newState);
     // visually show which state is selected
-    var newButtonColor = turnOff? "white": "#DEDEDE";
+    const newButtonColor = turnOff? "white": "#DEDEDE";
 
     d3.select("#" + caller.id)
         .style("background-color", newButtonColor)
-        /* reset previously set properties of button */
+        // reinitialize previously set properties of button
         .on("mouseover", function() {
             if(turnOff)
                 d3.select("#" + caller.id).style("background-color", "#F5F5F5");
@@ -480,7 +477,7 @@ function isCharSeq(data) {
 }
 
 function resetCurrentStep() {
-    var nodeLabel = pathCache[0][transitionStep];
+    const nodeLabel = pathCache[0][transitionStep];
     nodeData[nodeLabel].toggleFocus(false);
     clearLatestLoggerMessage();
 }
@@ -492,19 +489,18 @@ function stepTransition(stepDirection) {
     Notes:
     - inputing 0 amounts to a no-op. 
     - allows for movement within bounds of trace (i.e. does not work in a circular manner) 
-    */    
+    */
     // no visualization available or transition in progress or invalid input
     if(pathCache == null || transitionInProgress || stepDirection == 0)
         return;
 
     transitionInProgress = true;
-    var newStep;
-    if(stepDirection > 0)
+
+    const newStep = (stepDirection > 0)?
         // can move forwards to at most the last visible step of visualization
-        newStep = d3.min([pathCache[0].length - 1, transitionStep + stepDirection]);
-    else
+        d3.min([pathCache[0].length - 1, transitionStep + stepDirection]):
         // can move backwards to at most the step before the first visible one
-        newStep = d3.max([0 - 1, transitionStep + stepDirection]);
+        d3.max([0 - 1, transitionStep + stepDirection]);
 
     // at end of trace & trying to move forward or at beginning of trace & trying to move backward => no-op
     if(newStep == transitionStep) {
@@ -516,9 +512,9 @@ function stepTransition(stepDirection) {
         resetCurrentStep();
 
     if(newStep >= 0) {
-        var currentMessage = pathCache[2][newStep];
+        const currentMessage = pathCache[2][newStep];
         displayLoggerMessage(currentMessage);
-        var nodeLabel = pathCache[0][newStep];
+        const nodeLabel = pathCache[0][newStep];
         nodeData[nodeLabel].toggleFocus(true, transitionDurationMs = 500, onEnd = function() {
             transitionStep = newStep;
             transitionInProgress = false;
@@ -541,7 +537,7 @@ function clearVisualization() {
 function resetVisualization() {
     d3.select("#algorithmDetails").text("");
     clearLatestLoggerMessage();
-    var selectedAlgorithm = d3.select("#selectedAlgorithm").node().value;
+    const selectedAlgorithm = d3.select("#selectedAlgorithm").node().value;
     clearVisualization();
     updateGraph();
 
@@ -557,19 +553,18 @@ function updateGraph() {
 
 // Draw directed edges - ID: "<id-edge>"
 Object.keys(edgeList).forEach(function(idEdge) {
-    var [srcNode, dstNode, weight] = edgeList[idEdge];
+    const [srcNode, dstNode, weight] = edgeList[idEdge];
     drawNewEdge(canvas, idEdge, srcNode, dstNode, weight, drawInputBox = false);
 });
 
-
 // Draw nodes - ID: "<id-node>"
 Object.keys(nodeData).forEach(function(nodeLabel) {
-    var nodeProps = nodeData[nodeLabel];
+    const nodeProps = nodeData[nodeLabel];
     drawNewNode(canvas, nodeProps, false);
 });
 
 canvas.on("click", function() {
-    var [x, y] = d3.mouse(this);
+    const [x, y] = d3.mouse(this);
     console.log("You clicked on (" + x + ", " + y + ")");
     if(currState == STATES.ADD_NODE)
         addNewNode(x, y);

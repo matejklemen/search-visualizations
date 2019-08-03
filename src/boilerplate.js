@@ -1,38 +1,38 @@
-var CANVAS_WIDTH = 1000;
-var CANVAS_HEIGHT = 600;
-var canvas = d3.select("body")
+const CANVAS_WIDTH = 1000;
+const CANVAS_HEIGHT = 600;
+let canvas = d3.select("body")
                 .append("svg")
                 .attr("width", CANVAS_WIDTH)
                 .attr("height", CANVAS_HEIGHT);
-var loggerMessageStack = [];
-var logger = d3.select("#logger");
+let loggerMessageStack = [];
+let logger = d3.select("#logger");
 
 /* Arrow shape for directed edges -
     http://jsfiddle.net/igbatov/v0ekdzw1/ */
 canvas.append("svg:defs").append("svg:marker")
-    .attr("id", "triangle")
-    .attr("refX", 10)
-    .attr("refY", 6)
-    .attr("markerWidth", 10)
-    .attr("markerHeight", 30)
-    .attr("markerUnits","userSpaceOnUse")
-    .attr("orient", "auto")
-    .append("path")
-    .attr("d", "M 0 0 12 6 0 12 3 6")
-    .style("fill", "black");
+        .attr("id", "triangle")
+        .attr("refX", 10)
+        .attr("refY", 6)
+        .attr("markerWidth", 10)
+        .attr("markerHeight", 30)
+        .attr("markerUnits","userSpaceOnUse")
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M 0 0 12 6 0 12 3 6")
+        .style("fill", "black");
 
 /* Glow effect - https://www.visualcinnamon.com/2016/06/glow-filter-d3-visualization.html */
-var defs = canvas.append("defs");
-var filter = defs.append("filter")
-    .attr("id","glow");
+let defs = canvas.append("defs");
+let filter = defs.append("filter")
+                    .attr("id","glow");
 filter.append("feGaussianBlur")
-    .attr("stdDeviation","1.5")
-    .attr("result","coloredBlur");
-var feMerge = filter.append("feMerge");
+        .attr("stdDeviation","1.5")
+        .attr("result","coloredBlur");
+let feMerge = filter.append("feMerge");
 feMerge.append("feMergeNode")
-    .attr("in","coloredBlur");
+        .attr("in","coloredBlur");
 feMerge.append("feMergeNode")
-    .attr("in","SourceGraphic");
+        .attr("in","SourceGraphic");
 
 function drawNodeCircle(canvas, idNode, x, y, radius) {
     canvas.append("circle")
@@ -140,8 +140,8 @@ function drawNodeOverlay(canvas, idNode, nodeLabel, centerX, centerY, radius, on
 }
 
 function _displayLoggerText() {
-    var num_messages = loggerMessageStack.length;
-    var msg = num_messages > 0? loggerMessageStack[num_messages - 1]: "";
+    const num_messages = loggerMessageStack.length;
+    const msg = num_messages > 0? loggerMessageStack[num_messages - 1]: "";
     logger.text(msg);
 }
 
