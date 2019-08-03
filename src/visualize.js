@@ -28,10 +28,22 @@ var selectedStart = "s";
 var selectedGoals = new Set(["k", "g"]);
 
 var algoToFn = {
-    "dfs": (() => depthFirstSearch(dwg, selectedStart, selectedGoals)),
-    "bfs": (() => breadthFirstSearch(dwg, selectedStart, selectedGoals)),
-    "iddfs": (() => iterativeDeepening(dwg, selectedStart, selectedGoals)),
-    "astar": (() => astar(dwg, selectedStart, selectedGoals))
+    "dfs": {
+        "name": "DFS",
+        "fn": (() => depthFirstSearch(dwg, selectedStart, selectedGoals))
+    },
+    "bfs": {
+        "name": "BFS",
+        "fn": (() => breadthFirstSearch(dwg, selectedStart, selectedGoals))
+    },
+    "iddfs": {
+        "name": "IDDFS",
+        "fn": (() => iterativeDeepening(dwg, selectedStart, selectedGoals))
+    },
+    "astar": {
+        "name": "A*",
+        "fn": (() => astar(dwg, selectedStart, selectedGoals))
+    }
 };
 
 var dwg = new DirectedWeightedGraph();
@@ -534,8 +546,8 @@ function resetVisualization() {
     updateGraph();
 
     // rerun algorithm on new data
-    pathCache = algoToFn[selectedAlgorithm]();
-    d3.select("#algorithmDetails").text("|" + selectedAlgorithm + "💯 from " + selectedStart + " to {" + Array.from(selectedGoals).join(", ") + "}|");
+    pathCache = algoToFn[selectedAlgorithm].fn();
+    d3.select("#algorithmDetails").text(algoToFn[selectedAlgorithm].name + " from '" + selectedStart + "' to {" + Array.from(selectedGoals).map(n => `'${n}'`).join(", ") + "}");
 }
 
 function updateGraph() {

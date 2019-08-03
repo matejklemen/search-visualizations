@@ -279,7 +279,7 @@ function astar(graph, source, target) {
     var distToCurrNode = 0;
     frontier.push([currNode, 0, 0 + nodeData[source]["h"]]);
     nodesTrace.push(currNode.node);
-    notes.push(`Starting at node '${currNode.node}' (f = ${0} + ${nodeData[source]["h"]} = ${0 + nodeData[source]["h"]})`);
+    notes.push(`Initially enqueuing node '${currNode.node}' (f = ${0} + ${nodeData[source]["h"]} = ${0 + nodeData[source]["h"]})`);
 
     while(frontier.length > 0) {
         [currNode, distToCurrNode, fCurrNode] = frontier.shift();
