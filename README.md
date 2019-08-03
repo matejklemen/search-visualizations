@@ -5,6 +5,6 @@ This is a **WIP** - here's a quick demo to see where this project is at currentl
 
 
 ## Setup
-1. Clone the repository.
+1. Clone the repository.  
 `$ git clone https://github.com/matejklemen/search-visualizations`  
-2. Open up `index.html`.
+2. Open up `src/index.html`.
