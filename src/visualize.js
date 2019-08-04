@@ -58,7 +58,10 @@ function getNewEdgeId() {
 
 function changeStartNode(nodeLabel) {
     opInProgress = true;
-    selectedStart = nodeLabel;
+    if(selectedStart == nodeLabel)
+        selectedStart = null;
+    else
+        selectedStart = nodeLabel;
     resetVisualization();
     opInProgress = false;
 }
@@ -67,7 +70,7 @@ function changeEndNodes(nodeLabel) {
     opInProgress = true;
     if(!selectedGoals.has(nodeLabel))
         selectedGoals.add(nodeLabel);
-    else if(selectedGoals.size > 1)
+    else
         selectedGoals.delete(nodeLabel);
     resetVisualization();
     opInProgress = false;
@@ -543,7 +546,9 @@ function resetVisualization() {
 
     // rerun algorithm on new data
     pathCache = algoToFn[selectedAlgorithm].fn();
-    d3.select("#algorithmDetails").text(algoToFn[selectedAlgorithm].name + " from '" + selectedStart + "' to {" + Array.from(selectedGoals).map(n => `'${n}'`).join(", ") + "}");
+    const startNode = selectedStart == null? "<NO START>": `'${selectedStart}'`;
+    const goalNodes = selectedGoals.size == 0? "<NO GOAL>": `{${Array.from(selectedGoals).map(n => `'${n}'`).join(", ")}}`;
+    d3.select("#algorithmDetails").text(algoToFn[selectedAlgorithm].name + " from " + startNode + " to " + goalNodes);
 }
 
 function updateGraph() {
