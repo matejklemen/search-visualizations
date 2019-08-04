@@ -276,6 +276,13 @@ function deleteNodeAndEdges(graph, nodeLabel) {
     graph.removeNode(nodeLabel);
     delete nodeData[nodeLabel];
 
+    // remove node if it's among start/end nodes
+    if(selectedGoals.has(nodeLabel))
+        selectedGoals.delete(nodeLabel);
+    if(selectedStart == nodeLabel)
+        selectedStart = null;
+
+
     opInProgress = false;
     // recalculate path to be displayed on screen
     resetVisualization();
