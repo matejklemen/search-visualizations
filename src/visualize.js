@@ -42,7 +42,7 @@ const algoToFn = {
     },
     "astar": {
         "name": "A*",
-        "fn": (() => astar(dwg, selectedStart, selectedGoals))
+        "fn": (() => astar(dwg, selectedStart, selectedGoals, getHeuristicScores()))
     }
 };
 
@@ -177,6 +177,13 @@ var edgesWithoutId = [
 ];
 let edgeList = {}
 edgesWithoutId.forEach(edge => edgeList[getNewEdgeId()] = edge);
+
+/* Gathers up the heuristic values of drawn nodes */
+function getHeuristicScores() {
+    let h = {};
+    Object.values(nodeData).forEach(drawnNodeObj => h[drawnNodeObj.label] = drawnNodeObj.h);
+    return h;
+}
 
 function nodesOverlappingArea(xLeftArea, xRightArea, yTopArea, yBottomArea) {
     let nodes = [];
@@ -561,6 +568,13 @@ function resetVisualization() {
 function updateGraph() {
     dwg.addNodesFrom(Object.keys(nodeData));
     dwg.addEdgesFrom(edgeList);
+}
+
+/* Marks found path in bold. Not used anywhere currently, as edges need to be refactored first. */
+function toggleFocusPath(path, focus = true) {
+    // TODO: experimental at this point
+    for(let i = 0; i < path.length - 1; i++)
+        d3.select("#" + dwg.outEdges[path[i]][path[i + 1]]).attr("stroke-width", focus? "4px": "2px");
 }
 
 // Draw directed edges - ID: "<id-edge>"

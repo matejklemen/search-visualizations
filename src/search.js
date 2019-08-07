@@ -79,7 +79,7 @@ function insertSorted(l, el, cmp=(el1, el2) => (el1 > el2)) {
     Logs a warning if any of the target nodes are not in graph. */
 function checkSourceTargetInGraph(graph, source, target) {
     if(!(graph.nodes.has(source))) {
-        console.error("***Source node not in graph ***");
+        console.error("*** Source node not in graph ***");
         return false;
     }
 
@@ -129,7 +129,7 @@ function depthFirstSearch(graph, source, target) {
 
     if(pathFound.length > 0) {
         nodesTrace.push(nodesTrace[nodesTrace.length - 1]);
-        notes.push(`Found path: ${pathFound.join("->")}`);
+        notes.push(`Found path: ${pathFound.join("🡒")}`);
     }
     else {
         nodesTrace.push(source);
@@ -181,7 +181,7 @@ function breadthFirstSearch(graph, source, target) {
         }
         pathFound = pathFound.reverse();
         nodesTrace.push(pathFound[pathFound.length - 1]);
-        notes.push(`Found path: ${pathFound.join("->")}`);
+        notes.push(`Found path: ${pathFound.join("🡒")}`);
     }
     else {
         nodesTrace.push(currNode.node);
@@ -254,7 +254,7 @@ function iterativeDeepening(graph, source, target) {
 
     if(pathFound.length > 0) {
         nodesTrace.push(pathFound[pathFound.length - 1]);
-        notes.push(`Found path: ${pathFound.join("->")}`);
+        notes.push(`Found path: ${pathFound.join("🡒")}`);
     }
     else {
         nodesTrace.push(source);
@@ -264,7 +264,7 @@ function iterativeDeepening(graph, source, target) {
     return [nodesTrace, pathFound, notes];
 }
 
-function astar(graph, source, target) {
+function astar(graph, source, target, h) {
     if(!checkSourceTargetInGraph(graph, source, target))
         return null;
 
@@ -277,9 +277,9 @@ function astar(graph, source, target) {
     let frontier = [];
     let currNode = new ReconstructionNode(source, null);
     let distToCurrNode = 0;
-    frontier.push([currNode, 0, 0 + nodeData[source]["h"]]);
+    frontier.push([currNode, 0, 0 + h[source]]);
     nodesTrace.push(currNode.node);
-    notes.push(`Initially enqueuing node '${currNode.node}' (f = ${0} + ${nodeData[source]["h"]} = ${0 + nodeData[source]["h"]})`);
+    notes.push(`Initially enqueuing node '${currNode.node}' (f = ${0} + ${h[source]} = ${0 + h[source]})`);
 
     while(frontier.length > 0) {
         [currNode, distToCurrNode, fCurrNode] = frontier.shift();
@@ -297,9 +297,8 @@ function astar(graph, source, target) {
             const [,, weight] = graph.edges[idEdge];
 
             const distToCurrSuccessor = distToCurrNode + weight;
-            // TODO: remove this nasty reference to values from a completely different file (add another arg to astar(...) instead)
-            const fScore = distToCurrSuccessor + nodeData[successorNode]["h"];
-            msg.push(`'${successorNode}' (f = ${distToCurrSuccessor} + ${nodeData[successorNode]["h"]} = ${fScore})`);
+            const fScore = distToCurrSuccessor + h[successorNode];
+            msg.push(`'${successorNode}' (f = ${distToCurrSuccessor} + ${h[successorNode]} = ${fScore})`);
             frontier = insertSorted(frontier, [new ReconstructionNode(successorNode, currNode), distToCurrSuccessor, fScore],
                                     (el1, el2) => (el1[2] > el2[2])) // sort by f-scores
         }
@@ -320,7 +319,7 @@ function astar(graph, source, target) {
         }
         pathFound = pathFound.reverse();
         nodesTrace.push(pathFound[pathFound.length - 1]);
-        notes.push(`Found path: ${pathFound.join("->")}`);
+        notes.push(`Found path: ${pathFound.join("🡒")}`);
     }
     else {
         nodesTrace.push(currNode.node);
