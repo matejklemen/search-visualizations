@@ -43,6 +43,10 @@ const algoToFn = {
     "astar": {
         "name": "A*",
         "fn": (() => astar(dwg, selectedStart, selectedGoals, getHeuristicScores()))
+    },
+    "rbfs": {
+        "name": "Recursive best-first search",
+        "fn": (() => rbfs(dwg, selectedStart, selectedGoals, getHeuristicScores()))
     }
 };
 

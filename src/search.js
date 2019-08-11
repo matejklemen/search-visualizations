@@ -328,3 +328,145 @@ function astar(graph, source, target, h) {
 
     return [nodesTrace, pathFound, notes];
 }
+
+function rbfs(graph, source, target, h) {
+    if(!checkSourceTargetInGraph(graph, source, target))
+        return null;
+
+    let pathFound = [];
+    let nodesTrace = [];
+    let notes = [];
+
+    /*
+        fScores... static f-values, i.e. f(n) = g(n) + h(n), where g(n) is actual path from start node to `n` and h(n) is the estimated cost of best
+            path from `n` to some goal state
+        fBounds... backed-up values, i.e. dynamically updated estimate of the lowest cost of path from `n` to some goal state
+    */
+    let fScores = {};
+    let fBounds = {};
+
+    // Initialization: f(source) = F(source)
+    fScores[source] = 0 + h[source];
+    fBounds[source] = fScores[source];
+
+    let GLOBAL_STEP = 0;
+
+    // should return two things: [0] a flag, determining whether to quit the procedure and [1] the new F-bound (which is only valid if [0] is false)
+    function internalRbfs(currNode, currBound) {
+        GLOBAL_STEP++;
+        if(GLOBAL_STEP > 1000) {
+            nodesTrace.push(currNode.node);
+            notes.push("[SAFEGUARD] Reached 1000 steps of execution, which is very suspicious and likely means the procedure would never terminate\
+                (a possible reason for this is that none of the targets are reachable)");
+            return [true, -1, currNode];
+        }
+
+        let currNodeLabel = currNode.node;
+        nodesTrace.push(currNodeLabel);
+        notes.push(`Visiting node '${currNodeLabel}' with bound <= ${currBound}`);
+
+        // current bound surpassed, need to increase it and backtrack
+        if(fScores[currNodeLabel] > currBound) {
+            nodesTrace.push(currNodeLabel);
+            notes.push(`Current node's f-value (${fScores[currNodeLabel]}) is above the bound (${currBound}) -> backtracking`);
+            console.log(`Bound passed, backtracking!`);
+            return [false, fScores[currNodeLabel], currNode];
+        }
+
+        const isTarget = target.has(currNodeLabel);
+        nodesTrace.push(currNodeLabel);
+        notes.push(`'${currNodeLabel}' is ${isTarget? "": "not"} a target node`);
+        if(isTarget)
+            return [true, currBound, currNode];
+
+        let children = Object.keys(graph.outEdges[currNodeLabel]);
+        nodesTrace.push(currNode.node);
+        
+        // current node has no children - signal dead end by returning a very large new boundary
+        if(children.length == 0) {
+            notes.push(`'${currNode.node}' has no successors -> returning new F-bound of Infinity to signal dead end`);
+            console.log("Hit dead end!");
+            return [false, Infinity, currNode];
+        }
+
+        let currNodeVisited = fScores[currNodeLabel] < fBounds[currNodeLabel];
+        // `msg1` contains note about update rule, `msg2` contains concrete values for updates
+        let msg1 = (currNodeVisited?
+            `f(${currNodeLabel}) = ${fScores[currNodeLabel]} < F(${currNodeLabel}) = ${fBounds[currNodeLabel]}, so we know that '${currNodeLabel}' was visited before\
+             -> inheritance, i.e. F(child) = max(F(parent = '${currNodeLabel}'), f(child))`: 
+            `f(${currNodeLabel}) = ${fScores[currNodeLabel]} >= F(${currNodeLabel}) = ${fBounds[currNodeLabel]}, so children's backed-up values are same as their \
+            static values, i.e. F(child) = f(child)`);
+        let msg2 = [];
+
+        let localPriorityQueue = [];
+        for(let i = 0; i < children.length; i++) {
+            // weight of edge from current node to current children
+            let [,, wEdge] = graph.edges[graph.outEdges[currNodeLabel][children[i]]];
+            let fScoreChild = (fScores[currNodeLabel] - h[currNodeLabel]) + wEdge + h[children[i]];
+            fScores[children[i]] = fScoreChild;
+
+            // children inherit parent's backed-up value (F)
+            if(currNodeVisited) {
+                fBounds[children[i]] = Math.max(fBounds[currNodeLabel], fScores[children[i]]);
+                msg2.push(`F(${children[i]}) = max(${fBounds[currNodeLabel]}, ${fScores[children[i]]})`);
+            }
+            else {
+                fBounds[children[i]] = fScores[children[i]];
+                msg2.push(`F(${children[i]}) = ${fScores[children[i]]}`);
+            }
+            localPriorityQueue.push([children[i], fBounds[children[i]]]);
+        }
+
+        notes.push(`${msg1}: ${msg2.join(", ")}`);
+
+        // NOTE: "Priority queue" holds lists of length 2: [0] is the node label, [1] is the node's backed-up value (F)
+        // Sort ascending by backed-up values (F)
+        localPriorityQueue.sort((item1, item2) => item1[1] > item2[1]);
+
+        while(localPriorityQueue[0][1] <= currBound) {
+            // if current best node has no sibling, it will take parent's (current node's) bound
+            let fBoundSibling = (localPriorityQueue.length == 1)? Infinity: localPriorityQueue[1][1];
+
+            nodesTrace.push(currNodeLabel);
+            notes.push(`Current local priority queue content: ${localPriorityQueue.map(nodeAndPriority => 
+                `('${nodeAndPriority[0]}', f(${nodeAndPriority[0]}) = ${nodeAndPriority[1]})`).join(", ")}`);
+
+            let [foundGoal, newBound, goalNode] = internalRbfs(new ReconstructionNode(localPriorityQueue[0][0], currNode), Math.min(currBound, fBoundSibling));
+            if(foundGoal)
+                return [true, currBound, goalNode];
+
+            nodesTrace.push(localPriorityQueue[0][0]);
+            notes.push(`Correcting backed-up value: F(${localPriorityQueue[0][0]}) = ${newBound}`);
+
+            // set new bound and sort "priority queue"
+            localPriorityQueue[0][1] = newBound;
+            fBounds[localPriorityQueue[0][0]] = newBound;
+            localPriorityQueue.sort((item1, item2) => item1[1] > item2[1]);
+        }
+
+        let [bestNode, bestBackedUpValue] = localPriorityQueue[0];
+        nodesTrace.push(currNodeLabel);
+        notes.push(`Current best option (F(${bestNode}) = ${bestBackedUpValue}) is above the bound (${currBound}) -> returning new F-bound of ${bestBackedUpValue}`);
+
+        return [false, bestBackedUpValue, currNode];
+    }
+
+    let [foundGoal, , goalNode] = internalRbfs(new ReconstructionNode(source, null), Infinity);
+
+    if(target.has(goalNode.node)) {
+        let n = goalNode;
+        while(n !== null) {
+            pathFound.push(n.node);
+            n = n.parentNode;
+        }
+        pathFound = pathFound.reverse();
+        nodesTrace.push(pathFound[pathFound.length - 1]);
+        notes.push(`Found path: ${pathFound.join("🡒")}`);
+    }
+    else {
+        nodesTrace.push(source);
+        notes.push(`No path found from '${source}' to {${Array.from(target).map(n => `'${n}'`).join(", ")}}`);
+    }
+
+    return [nodesTrace, pathFound, notes];
+}
