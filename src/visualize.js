@@ -45,7 +45,7 @@ const algoToFn = {
         "fn": (() => astar(dwg, selectedStart, selectedGoals, getHeuristicScores()))
     },
     "rbfs": {
-        "name": "Recursive best-first search",
+        "name": "RBFS",
         "fn": (() => rbfs(dwg, selectedStart, selectedGoals, getHeuristicScores()))
     }
 };
@@ -213,9 +213,9 @@ function angleBetweenPoints(x1, y1, x2, y2) {
     return (result < 0) ? (2 * Math.PI + result): result;
 }
 
-/* Determines edge start and end in a way that the circles do not overlap with lines, 
-    but rather that the lines touch the boundary of the circles. */
-function fixEdgeStartEnd(edge) {
+/* Returns 2 points (= 4 (x, y) coordinates) that lie on a line between source and target node of `edge`. First point
+    lies `dist` px away from the source node and the second lies `dist` px away from the target node. */
+function pointOnEdge(edge, dist = NODE_RADIUS) {
     const [srcLabel, dstLabel, _] = edge;
     const srcNode = nodeData[srcLabel];
     const dstNode = nodeData[dstLabel];
@@ -224,29 +224,10 @@ function fixEdgeStartEnd(edge) {
     const angleSrcDst = 2 * Math.PI - angleBetweenPoints(srcNode.x, srcNode.y, dstNode.x, dstNode.y);
     const angleDstSrc = 2 * Math.PI - angleBetweenPoints(dstNode.x, dstNode.y, srcNode.x, srcNode.y);
     // https://stackoverflow.com/questions/5300938/calculating-the-position-of-points-in-a-circle
-    return [srcNode.x + NODE_RADIUS * Math.cos(angleSrcDst),
-            srcNode.y + NODE_RADIUS * Math.sin(angleSrcDst),
-            dstNode.x + NODE_RADIUS * Math.cos(angleDstSrc),
-            dstNode.y + NODE_RADIUS * Math.sin(angleDstSrc)];
-}
-
-// TODO: refactor this (reuse common functionality from `fixEdgeStartEnd`) - maybe add an optional SCALE parameter
-function distanceLabelAndLocation(edge) {
-    const [srcLabel, dstLabel, dist] = edge;
-    const srcNode = nodeData[srcLabel];
-    const dstNode = nodeData[dstLabel];
-
-    // should be between 0 and 1, 0 means label is closer to source node, 1 means closer to dst node
-    const SCALE = 0.2
-
-    // subtracting angle from 2PI because (0, 0) is in top-left corner in screen coordinates
-    const angleSrcDst = 2 * Math.PI - angleBetweenPoints(srcNode.x, srcNode.y, dstNode.x, dstNode.y);
-    const angleDstSrc = 2 * Math.PI - angleBetweenPoints(dstNode.x, dstNode.y, srcNode.x, srcNode.y);
-    const [startX, startY, endX, endY] = fixEdgeStartEnd(edge);
-
-    const OFFSET = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) * SCALE;
-    return [srcNode.x + (NODE_RADIUS + OFFSET) * Math.cos(angleSrcDst),
-            srcNode.y + (NODE_RADIUS + OFFSET) * Math.sin(angleSrcDst)];
+    return [srcNode.x + dist * Math.cos(angleSrcDst),
+            srcNode.y + dist * Math.sin(angleSrcDst),
+            dstNode.x + dist * Math.cos(angleDstSrc),
+            dstNode.y + dist * Math.sin(angleDstSrc)];
 }
 
 /* Removes node with label `nodeLabel` from the screen and the underlying data structures. */
@@ -390,8 +371,9 @@ function addNewNode(x, y) {
 
 function drawNewEdge(canvas, idEdge, srcNode, dstNode, weight, drawInputBox = false) {
     // coordinates for edge from boundary of first node's circle to boundary of second node's circle 
-    const [xStart, yStart, xEnd, yEnd] = fixEdgeStartEnd([srcNode, dstNode, weight]);
-    const [xWeight, yWeight] = distanceLabelAndLocation([srcNode, dstNode, weight]);
+    const [xStart, yStart, xEnd, yEnd] = pointOnEdge([srcNode, dstNode, weight]);
+    const distBoundaryToBoundary = Math.sqrt(Math.pow(xEnd - xStart, 2) + Math.pow(yEnd - yStart, 2));
+    const [xWeight, yWeight] = pointOnEdge([srcNode, dstNode, weight], dist = NODE_RADIUS + 0.2 * distBoundaryToBoundary);
 
     drawDirectedEdgeLine(canvas, idEdge, xStart, yStart, xEnd, yEnd);
 
@@ -443,7 +425,6 @@ function addNewEdge() {
     const [srcNode, dstNode] = newEdgeBuffer;
     // check that the edge doesn't already exist
     if(dstNode in dwg.outEdges[srcNode]) {
-        console.log("A directed edge between '" + srcNode + "' and '" + dstNode + "' already exists.");
         newEdgeBuffer = [];
         return;
     }
@@ -576,7 +557,7 @@ function updateGraph() {
 
 /* Marks found path in bold. Not used anywhere currently, as edges need to be refactored first. */
 function toggleFocusPath(path, focus = true) {
-    // TODO: experimental at this point
+    // TODO: experimental at this point (and not included anywhere)
     for(let i = 0; i < path.length - 1; i++)
         d3.select("#" + dwg.outEdges[path[i]][path[i + 1]]).attr("stroke-width", focus? "4px": "2px");
 }
@@ -595,7 +576,6 @@ Object.keys(nodeData).forEach(function(nodeLabel) {
 
 canvas.on("click", function() {
     const [x, y] = d3.mouse(this);
-    console.log("You clicked on (" + x + ", " + y + ")");
     if(currState == STATES.ADD_NODE)
         addNewNode(x, y);
 });

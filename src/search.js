@@ -369,7 +369,6 @@ function rbfs(graph, source, target, h) {
         if(fScores[currNodeLabel] > currBound) {
             nodesTrace.push(currNodeLabel);
             notes.push(`Current node's f-value (${fScores[currNodeLabel]}) is above the bound (${currBound}) -> backtracking`);
-            console.log(`Bound passed, backtracking!`);
             return [false, fScores[currNodeLabel], currNode];
         }
 
@@ -385,7 +384,6 @@ function rbfs(graph, source, target, h) {
         // current node has no children - signal dead end by returning a very large new boundary
         if(children.length == 0) {
             notes.push(`'${currNode.node}' has no successors -> returning new F-bound of Infinity to signal dead end`);
-            console.log("Hit dead end!");
             return [false, Infinity, currNode];
         }
 
