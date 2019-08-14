@@ -1,8 +1,5 @@
 # Search visualizations
 
-This is a **WIP** - here's a quick demo to see where this project is at currently.  
-![Demo of depth-first search](doc/dfs-mini-demo.gif)
-
 ## What is this?
 This repository contains visualizations (traces and additional notes) of several search algorithms:  
 - depth-first search (DFS)
@@ -12,7 +9,9 @@ This repository contains visualizations (traces and additional notes) of several
 - recursive best-first search (RBFS)
 
 There is also accompanying logic for drawing your own graph, so that you can easily check how these algorithms would 
-work on your example.
+work on your example.  
+
+![Demo of depth-first search](doc/dfs-mini-demo.gif)
 
 ## Setup
 1. Clone the repository.  
@@ -44,6 +43,3 @@ left and right arrow keys on your keyboard.
 ### Additional notes
 - After adding a node or edge, the trace needs to be reset. This is not automatically done because one can accidentally add a cycle that would cause the search algorithm to loop endlessly and if the algorithm immediately ran again, there would be no chance to fix this problem  
 - Edges can currently only be removed by removing either node on the endpoints of that edge (removing a node also removes all of its in- and out-edges)  
-
-## Examples
-TODO: gifs of examples
